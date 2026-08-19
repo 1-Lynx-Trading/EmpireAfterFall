@@ -2,1393 +2,1875 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>EMPIRE: AFTERFALL</title>
+<title>ROGUEFALL</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 :root{
-  --bg-black:#07090a; --charcoal:#0e1113; --gunmetal:#171b1e; --steel:#2a3136;
-  --steel-light:#3a444a; --accent:#4fd8c4; --accent-dim:#2c7d70; --accent-glow:rgba(79,216,196,.35);
-  --danger:#e2515a; --warn:#e2b350; --gold:#d6b25f; --text:#dfe6e6; --text-dim:#8a9698;
-  --border:#2a3236; --panel:rgba(20,24,26,.9);
+  --bg:#07070b; --panel:#12121a; --panel2:#1a1a26; --border:#33334a;
+  --gold:#e8c46a; --hp:#e5484d; --mana:#4d8fe5; --xp:#a86ee8;
+  --text:#e8e6f0; --dim:#8a89a0; --accent:#7dd3fc; --danger:#ff5c5c;
+  --common:#9aa0a6; --uncommon:#4dd68a; --rare:#4d9fe8; --epic:#b04de8; --legendary:#e8a94d; --mythic:#e84d8f;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg-black);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;}
-button{font-family:inherit;cursor:pointer;}
-::-webkit-scrollbar{width:8px;height:8px;}
-::-webkit-scrollbar-thumb{background:var(--steel-light);border-radius:4px;}
-::-webkit-scrollbar-track{background:var(--charcoal);}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;height:100%;}
+#gameContainer{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
+canvas{background:radial-gradient(ellipse at center, #14141f 0%, #07070b 100%);display:block;image-rendering:optimizeSpeed;}
+#gameWrap{position:relative;}
 
-.screen{position:fixed;inset:0;display:none;flex-direction:column;}
+/* ---------- overlay screens ---------- */
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(4,4,8,0.92);z-index:50;text-align:center;padding:20px;}
 .screen.active{display:flex;}
+.title-big{font-size:clamp(36px,7vw,72px);letter-spacing:6px;font-weight:800;
+  background:linear-gradient(180deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 0 40px rgba(232,196,106,0.4);margin:0 0 6px 0;}
+.subtitle{color:var(--dim);letter-spacing:3px;font-size:14px;margin-bottom:30px;}
+.cinematic-text{font-size:22px;color:#ddd;letter-spacing:1px;min-height:60px;opacity:0;transition:opacity 1.2s ease;font-style:italic;}
+.cinematic-text.show{opacity:1;}
+.menu-btn{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);color:var(--text);
+  padding:14px 38px;font-size:16px;letter-spacing:2px;margin:6px;border-radius:6px;cursor:pointer;min-width:240px;
+  transition:all .15s;text-transform:uppercase;font-weight:600;}
+.menu-btn:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px);box-shadow:0 4px 20px rgba(232,196,106,.15);}
+.menu-btn:active{transform:translateY(0);}
+.menu-btn.primary{border-color:var(--gold);background:linear-gradient(180deg,#3a3220,#1a1610);color:var(--gold);}
+.menu-btn.small{padding:8px 20px;font-size:12px;min-width:auto;}
+.menu-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
 
-/* ===== MAIN MENU ===== */
-#menu{
-  background:
-    radial-gradient(ellipse at 50% 20%, rgba(79,216,196,.08), transparent 60%),
-    linear-gradient(180deg, #05070a 0%, #0a0d10 60%, #05070a 100%);
-  align-items:center;justify-content:center;text-align:center;position:relative;
-}
-#menu::before{
-  content:"";position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(79,216,196,.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(79,216,196,.04) 1px, transparent 1px);
-  background-size:48px 48px;
-  mask-image:radial-gradient(ellipse at center, black 0%, transparent 75%);
-  animation:gridpan 60s linear infinite;
-}
-@keyframes gridpan{from{background-position:0 0,0 0;}to{background-position:200px 400px,200px 400px;}}
-.menu-inner{position:relative;z-index:2;}
-.menu-title{font-size:64px;letter-spacing:14px;font-weight:700;color:#eef7f6;
-  text-shadow:0 0 30px var(--accent-glow),0 0 4px #fff;}
-.menu-sub{font-size:26px;letter-spacing:22px;color:var(--accent);margin-top:2px;font-weight:300;}
-.menu-tag{margin-top:22px;color:var(--text-dim);font-style:italic;letter-spacing:1px;font-size:14px;}
-.menu-buttons{margin-top:46px;display:flex;flex-direction:column;gap:12px;width:320px;margin-left:auto;margin-right:auto;}
-.menu-btn{
-  background:linear-gradient(180deg, rgba(42,49,54,.6), rgba(20,24,26,.6));
-  border:1px solid var(--border);color:var(--text);padding:14px 18px;font-size:14px;
-  letter-spacing:3px;text-transform:uppercase;transition:all .2s;position:relative;
-}
-.menu-btn:hover{border-color:var(--accent);color:#fff;box-shadow:0 0 18px var(--accent-glow) inset,0 0 10px var(--accent-glow);}
-.menu-btn:disabled{opacity:.35;cursor:not-allowed;}
-.menu-footer{position:absolute;bottom:16px;width:100%;text-align:center;color:#4a5558;font-size:11px;letter-spacing:2px;}
+/* death / victory */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 40px;margin:22px 0;font-size:15px;min-width:340px;}
+.stat-grid .label{color:var(--dim);text-align:right;}
+.stat-grid .val{color:var(--gold);text-align:left;font-weight:700;}
+.run-end-title{font-size:40px;letter-spacing:4px;color:var(--danger);font-weight:800;margin-bottom:4px;}
+.victory-title{font-size:40px;letter-spacing:4px;color:var(--gold);font-weight:800;margin-bottom:4px;text-shadow:0 0 30px rgba(232,196,106,.5);}
 
-/* ===== SETUP SCREEN ===== */
-#setup{background:var(--bg-black);align-items:center;justify-content:center;}
-.setup-box{width:820px;max-width:92vw;background:var(--panel);border:1px solid var(--border);padding:34px;
-  box-shadow:0 0 60px rgba(0,0,0,.6);}
-.setup-box h2{letter-spacing:4px;color:var(--accent);font-size:20px;margin-bottom:22px;text-transform:uppercase;}
-.faction-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
-.faction-card{border:1px solid var(--border);padding:14px;background:rgba(255,255,255,.02);transition:.2s;}
-.faction-card:hover{border-color:var(--steel-light);}
-.faction-card.selected{border-color:var(--accent);box-shadow:0 0 14px var(--accent-glow);background:rgba(79,216,196,.06);}
-.faction-name{font-weight:700;letter-spacing:1px;margin-bottom:4px;}
-.faction-desc{font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.4;}
-.faction-stat{font-size:11px;color:var(--accent);}
-.setup-row{display:flex;gap:14px;align-items:center;margin-bottom:16px;}
-.setup-row input{background:var(--gunmetal);border:1px solid var(--border);color:var(--text);padding:8px 10px;flex:1;}
-.setup-row label{font-size:12px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;width:110px;}
-.setup-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;}
+/* HUD */
+#hud{position:absolute;inset:0;pointer-events:none;z-index:20;font-size:13px;}
+.hud-topleft{position:absolute;top:10px;left:10px;width:230px;pointer-events:auto;}
+.hud-topright{position:absolute;top:10px;right:10px;text-align:right;pointer-events:auto;}
+.bar-bg{background:#1a1a24;border:1px solid #000;border-radius:4px;height:16px;position:relative;overflow:hidden;margin-bottom:4px;box-shadow:inset 0 0 4px #000;}
+.bar-fill{height:100%;transition:width .25s ease;}
+.bar-fill.hp{background:linear-gradient(180deg,#ff7a7d,var(--hp));}
+.bar-fill.mana{background:linear-gradient(180deg,#7ab0ff,var(--mana));}
+.bar-fill.xp{background:linear-gradient(180deg,#c79aff,var(--xp));}
+.bar-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;text-shadow:0 1px 2px #000;}
+.hud-line{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.hud-name{font-weight:800;letter-spacing:1px;color:var(--gold);margin-bottom:4px;font-size:14px;text-shadow:0 0 8px rgba(232,196,106,.4);}
+.gold-row{color:var(--gold);font-weight:700;font-size:16px;}
+.floor-row{color:var(--dim);font-size:12px;margin-top:2px;}
 
-/* ===== GAME SCREEN ===== */
-#game{flex-direction:column;background:var(--bg-black);}
-#topbar{
-  height:52px;background:linear-gradient(180deg,#12161818,#0a0c0d);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 16px;gap:22px;flex-shrink:0;
-}
-.res-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);}
-.res-item .val{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
-.res-icon{width:8px;height:8px;border-radius:2px;display:inline-block;}
-#topbar .spacer{flex:1;}
-#turn-display{font-size:13px;letter-spacing:2px;color:var(--accent);border:1px solid var(--accent-dim);padding:5px 12px;}
-#endturn-btn{
-  background:linear-gradient(180deg,var(--accent-dim),#1c5750);border:1px solid var(--accent);color:#eafff9;
-  padding:8px 18px;letter-spacing:2px;font-size:12px;text-transform:uppercase;font-weight:600;
-}
-#endturn-btn:hover{box-shadow:0 0 14px var(--accent-glow);}
+.hud-bottom{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto;align-items:flex-end;}
+.slot{width:52px;height:52px;background:var(--panel);border:1px solid var(--border);border-radius:8px;position:relative;
+  display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;}
+.slot .cd{position:absolute;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
+.slot .key{position:absolute;bottom:1px;right:3px;font-size:9px;color:var(--dim);}
+.slot .count{position:absolute;top:1px;right:3px;font-size:10px;color:var(--gold);font-weight:700;}
 
-#body{flex:1;display:flex;min-height:0;}
-#sidebar{width:180px;background:var(--charcoal);border-right:1px solid var(--border);flex-shrink:0;padding:10px 0;overflow-y:auto;}
-.side-btn{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:12.5px;color:var(--text-dim);
-  letter-spacing:1px;border-left:3px solid transparent;transition:.15s;}
-.side-btn:hover{color:var(--text);background:rgba(255,255,255,.03);}
-.side-btn.active{color:var(--accent);border-left-color:var(--accent);background:rgba(79,216,196,.06);}
+.hud-topbtns{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto;}
+.icon-btn{background:var(--panel);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:6px;
+  cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.icon-btn:hover{border-color:var(--accent);}
 
-#center{flex:1;position:relative;overflow:hidden;background:#050708;}
-#map-wrap{position:absolute;inset:0;overflow:auto;}
-#map-svg{display:block;}
-.tile{stroke:#05070855;stroke-width:1;cursor:pointer;transition:filter .15s;}
-.tile:hover{filter:brightness(1.35);}
-.tile.selected{stroke:var(--accent);stroke-width:2.5;}
-.tile-label{font-size:7px;fill:#000;pointer-events:none;font-weight:600;opacity:.55;}
-.army-marker{cursor:pointer;}
+.boss-hud{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:min(560px,80vw);pointer-events:none;display:none;}
+.boss-hud.active{display:block;}
+.boss-name{text-align:center;color:var(--danger);font-weight:800;letter-spacing:3px;font-size:16px;margin-bottom:4px;text-shadow:0 0 10px rgba(255,80,80,.6);}
+.boss-bar-bg{height:20px;background:#150808;border:2px solid #4a1010;border-radius:3px;overflow:hidden;box-shadow:0 0 20px rgba(255,0,0,.15);}
+.boss-bar-fill{height:100%;background:linear-gradient(180deg,#ff6a6a,#a11818);transition:width .3s ease;}
+.boss-phase{text-align:center;color:var(--dim);font-size:10px;letter-spacing:2px;margin-top:2px;}
 
-#right-panel{width:320px;background:var(--panel);border-left:1px solid var(--border);flex-shrink:0;
-  overflow-y:auto;padding:16px;}
-#right-panel h3{color:var(--accent);letter-spacing:2px;font-size:14px;margin-bottom:10px;text-transform:uppercase;}
-.info-row{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid #1c2124;color:var(--text-dim);}
-.info-row .v{color:var(--text);}
-.panel-section{margin-top:16px;}
-.mini-btn{width:100%;background:var(--gunmetal);border:1px solid var(--border);color:var(--text);
-  padding:9px;font-size:11.5px;letter-spacing:1px;margin-top:6px;text-transform:uppercase;}
-.mini-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
-.mini-btn:disabled{opacity:.3;cursor:not-allowed;}
-.mini-btn.danger:hover:not(:disabled){border-color:var(--danger);color:var(--danger);}
-.empty-hint{color:#546065;font-size:12.5px;line-height:1.5;padding:20px 0;text-align:center;}
+/* item toasts */
+#toastArea{position:absolute;top:80px;right:10px;display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:25;max-width:240px;}
+.toast{background:var(--panel);border-left:4px solid var(--common);padding:8px 10px;border-radius:4px;font-size:12px;animation:toastIn .3s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.toast b{display:block;font-size:13px;}
+.toast.common{border-color:var(--common);} .toast.uncommon{border-color:var(--uncommon);}
+.toast.rare{border-color:var(--rare);} .toast.epic{border-color:var(--epic);}
+.toast.legendary{border-color:var(--legendary);} .toast.mythic{border-color:var(--mythic);}
 
-/* view panels (cities/military/tech/etc rendered in #view-content over map) */
-#view-content{position:absolute;inset:0;background:var(--bg-black);overflow-y:auto;padding:22px;display:none;}
-#view-content.active{display:block;}
-.view-header{font-size:18px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:18px;}
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
-.card{background:var(--panel);border:1px solid var(--border);padding:14px;}
-.card h4{font-size:13px;letter-spacing:1px;color:var(--text);margin-bottom:8px;}
-.card .desc{font-size:11.5px;color:var(--text-dim);margin-bottom:10px;line-height:1.4;min-height:32px;}
-.bar-bg{background:#1c2124;height:6px;border-radius:3px;overflow:hidden;margin:6px 0;}
-.bar-fill{height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--accent));}
-.tag{display:inline-block;font-size:10px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;color:var(--text-dim);margin-right:4px;}
+/* floating damage numbers layer is drawn on canvas */
 
-.tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);}
-.tab{padding:8px 16px;font-size:12px;letter-spacing:1px;color:var(--text-dim);border-bottom:2px solid transparent;text-transform:uppercase;}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+/* pause / level up / choice modals */
+.modal-bg{position:absolute;inset:0;background:rgba(4,4,8,.85);z-index:40;display:none;align-items:center;justify-content:center;flex-direction:column;}
+.modal-bg.active{display:flex;}
+.modal-box{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:24px;max-width:640px;width:92%;max-height:86vh;overflow-y:auto;}
+.modal-title{font-size:22px;letter-spacing:3px;color:var(--gold);text-align:center;margin-bottom:14px;font-weight:800;}
 
-/* modals */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:100;}
-.modal-overlay.active{display:flex;}
-.modal{background:var(--panel);border:1px solid var(--border);width:460px;max-width:90vw;padding:24px;
-  box-shadow:0 0 60px rgba(0,0,0,.7);animation:modalIn .18s ease;}
-@keyframes modalIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-.modal h3{color:var(--accent);letter-spacing:2px;margin-bottom:14px;font-size:16px;text-transform:uppercase;}
-.modal .body{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:18px;}
-.modal-actions{display:flex;gap:10px;flex-wrap:wrap;}
-.modal-actions button{flex:1;min-width:120px;background:var(--gunmetal);border:1px solid var(--border);color:var(--text);
-  padding:11px;font-size:12px;letter-spacing:1px;text-transform:uppercase;}
-.modal-actions button:hover{border-color:var(--accent);color:var(--accent);}
-.forecast-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1c2124;font-size:13px;}
-.forecast-pct{font-size:30px;font-weight:700;text-align:center;margin:14px 0;color:var(--accent);}
+.choice-grid{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.choice-card{background:var(--panel2);border:2px solid var(--border);border-radius:8px;padding:14px;width:170px;cursor:pointer;transition:.15s;text-align:center;}
+.choice-card:hover{border-color:var(--accent);transform:translateY(-4px);}
+.choice-card .cname{font-weight:800;margin-bottom:6px;}
+.choice-card .cdesc{font-size:12px;color:var(--dim);}
 
-/* notifications */
-#notif-stack{position:fixed;top:64px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;width:300px;}
-.notif{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);padding:10px 14px;
-  font-size:12px;color:var(--text-dim);animation:notifIn .25s ease;}
-.notif b{color:var(--text);}
-.notif.warn{border-left-color:var(--warn);}
-.notif.danger{border-left-color:var(--danger);}
-@keyframes notifIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+.item-card{background:var(--panel2);border:2px solid var(--common);border-radius:8px;padding:14px;width:220px;cursor:pointer;transition:.15s;text-align:left;}
+.item-card:hover{transform:translateY(-4px);}
+.item-card .iname{font-weight:800;margin-bottom:4px;font-size:15px;}
+.item-card .irarity{font-size:10px;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:700;}
+.item-card .idesc{font-size:12px;color:#c9c8d6;}
+.item-card.common{border-color:var(--common);} .item-card.common .irarity{color:var(--common);}
+.item-card.uncommon{border-color:var(--uncommon);} .item-card.uncommon .irarity{color:var(--uncommon);}
+.item-card.rare{border-color:var(--rare);} .item-card.rare .irarity{color:var(--rare);}
+.item-card.epic{border-color:var(--epic);} .item-card.epic .irarity{color:var(--epic);}
+.item-card.legendary{border-color:var(--legendary);} .item-card.legendary .irarity{color:var(--legendary);}
+.item-card.mythic{border-color:var(--mythic);} .item-card.mythic .irarity{color:var(--mythic);}
 
-/* end screen */
-#endscreen{background:radial-gradient(ellipse at 50% 30%,rgba(226,81,90,.08),#05070a 70%);align-items:center;justify-content:center;}
-#endscreen.win{background:radial-gradient(ellipse at 50% 30%,rgba(79,216,196,.12),#05070a 70%);}
-.end-title{font-size:44px;letter-spacing:10px;text-align:center;color:#eef7f6;text-shadow:0 0 30px rgba(226,81,90,.5);}
-#endscreen.win .end-title{text-shadow:0 0 30px var(--accent-glow);}
-.end-stats{margin:26px auto;width:340px;}
+.event-text{font-size:14px;color:#ddd;line-height:1.5;margin-bottom:18px;text-align:center;}
+.event-choices{display:flex;flex-direction:column;gap:8px;}
+.event-choice-btn{background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:6px;cursor:pointer;text-align:left;}
+.event-choice-btn:hover{border-color:var(--accent);}
+.event-choice-btn b{color:var(--gold);}
+.event-choice-btn .sub{display:block;font-size:11px;color:var(--dim);margin-top:2px;}
 
-.hint-badge{position:absolute;bottom:14px;left:14px;background:var(--panel);border:1px solid var(--border);
-  padding:8px 14px;font-size:11.5px;color:var(--text-dim);max-width:340px;}
+/* shop */
+.shop-grid{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;}
+.shop-item{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;width:150px;text-align:center;}
+.shop-item .sname{font-weight:700;font-size:13px;margin-bottom:4px;}
+.shop-item .sdesc{font-size:11px;color:var(--dim);margin-bottom:8px;min-height:32px;}
+.shop-item .sprice{color:var(--gold);font-weight:700;margin-bottom:6px;}
+.buy-btn{background:#2a2410;border:1px solid var(--gold);color:var(--gold);padding:5px 14px;border-radius:4px;cursor:pointer;font-size:11px;width:100%;}
+.buy-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* map */
+.dmap{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.dmap-row{display:flex;gap:24px;align-items:center;}
+.dmap-node{width:44px;height:44px;border-radius:50%;background:var(--panel2);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;}
+.dmap-node.visited{border-color:var(--accent);}
+.dmap-node.current{border-color:var(--gold);box-shadow:0 0 12px rgba(232,196,106,.6);}
+.dmap-node.boss{border-color:var(--danger);}
+
+/* hub / upgrades */
+.upgrade-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:10px;}
+.upg-card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.upg-card .uname{font-weight:700;font-size:13px;color:var(--accent);}
+.upg-card .udesc{font-size:11px;color:var(--dim);margin:6px 0;}
+.upg-lvl{font-size:11px;color:var(--gold);margin-bottom:6px;}
+.upg-btn{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:11px;width:100%;}
+.upg-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+.upg-btn:disabled{opacity:.3;cursor:not-allowed;}
+.shard-count{color:var(--epic);font-weight:800;font-size:18px;margin-bottom:14px;}
+
+.tab-row{display:flex;gap:6px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;}
+.tab-btn{background:var(--panel2);border:1px solid var(--border);color:var(--dim);padding:6px 16px;border-radius:20px;cursor:pointer;font-size:12px;}
+.tab-btn.active{color:var(--gold);border-color:var(--gold);}
+
+.diff-row{display:flex;gap:8px;justify-content:center;margin:14px 0;flex-wrap:wrap;}
+.diff-btn{padding:10px 18px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer;font-size:12px;}
+.diff-btn.active{border-color:var(--gold);color:var(--gold);}
+
+.close-x{position:absolute;top:10px;right:14px;font-size:22px;color:var(--dim);cursor:pointer;}
+.close-x:hover{color:var(--text);}
+
+/* mobile controls */
+#mobileControls{position:absolute;inset:0;pointer-events:none;display:none;z-index:22;}
+#joystickZone{position:absolute;left:20px;bottom:20px;width:120px;height:120px;border-radius:50%;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,.15);pointer-events:auto;}
+#joystickThumb{position:absolute;width:50px;height:50px;border-radius:50%;background:rgba(232,196,106,.3);border:1px solid var(--gold);
+  left:35px;top:35px;pointer-events:none;}
+.touch-btn{position:absolute;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,.2);
+  pointer-events:auto;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700;}
+#atkBtn{right:24px;bottom:70px;background:rgba(229,72,77,.25);border-color:var(--hp);}
+#dashBtn{right:100px;bottom:24px;}
+#specBtn{right:24px;bottom:150px;background:rgba(77,143,229,.25);border-color:var(--mana);}
+
+.small-hint{font-size:11px;color:var(--dim);margin-top:16px;letter-spacing:1px;}
+::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 </style>
 </head>
 <body>
+<div id="gameContainer">
+<div id="gameWrap">
+<canvas id="gameCanvas" width="960" height="600"></canvas>
 
-<!-- ============ MAIN MENU ============ -->
-<div id="menu" class="screen active">
-  <div class="menu-inner">
-    <div class="menu-title">EMPIRE</div>
-    <div class="menu-sub">AFTERFALL</div>
-    <div class="menu-tag">"Civilization ended. Power survived."</div>
-    <div class="menu-buttons">
-      <button class="menu-btn" onclick="goToSetup()">New Campaign</button>
-      <button class="menu-btn" id="continue-btn" onclick="continueGame()">Continue</button>
-      <button class="menu-btn" onclick="showHowTo()">How To Play</button>
-      <button class="menu-btn" onclick="toggleMute()" id="mute-btn">Sound: On</button>
-    </div>
+<!-- ===================== HUD ===================== -->
+<div id="hud">
+  <div class="hud-topleft">
+    <div class="hud-name">THE WANDERER — Lv <span id="lvlNum">1</span></div>
+    <div class="bar-bg"><div class="bar-fill hp" id="hpBar" style="width:100%"></div><div class="bar-label" id="hpLabel">100/100</div></div>
+    <div class="bar-bg"><div class="bar-fill mana" id="manaBar" style="width:100%"></div><div class="bar-label" id="manaLabel">50/50</div></div>
+    <div class="bar-bg" style="height:8px;"><div class="bar-fill xp" id="xpBar" style="width:0%"></div></div>
   </div>
-  <div class="menu-footer">EMPIRE: AFTERFALL — PROTOTYPE BUILD</div>
-</div>
-
-<!-- ============ SETUP ============ -->
-<div id="setup" class="screen">
-  <div class="setup-box">
-    <h2>Select Your Faction</h2>
-    <div class="faction-grid" id="faction-grid"></div>
-    <div class="setup-row">
-      <label>World Seed</label>
-      <input id="seed-input" placeholder="leave blank for random">
-      <button class="mini-btn" style="width:auto;padding:9px 14px;margin:0;" onclick="document.getElementById('seed-input').value=Math.floor(Math.random()*999999)">Randomize</button>
-    </div>
-    <div class="setup-actions">
-      <button class="menu-btn" style="width:auto;padding:12px 20px;" onclick="showScreen('menu')">Back</button>
-      <button class="menu-btn" style="width:auto;padding:12px 20px;" onclick="startGame()">Begin Campaign</button>
-    </div>
+  <div class="hud-topright">
+    <div class="gold-row">💰 <span id="goldNum">0</span></div>
+    <div class="floor-row" id="floorLabel">Floor 1 · The Forgotten Crypt</div>
+    <div class="floor-row" id="roomLabel">Room: Combat</div>
   </div>
-</div>
-
-<!-- ============ GAME ============ -->
-<div id="game" class="screen">
-  <div id="topbar">
-    <div class="res-item"><span class="res-icon" style="background:#d6b25f"></span>Credits <span class="val" id="r-credits">0</span></div>
-    <div class="res-item"><span class="res-icon" style="background:#6bc464"></span>Food <span class="val" id="r-food">0</span></div>
-    <div class="res-item"><span class="res-icon" style="background:#9aa4a8"></span>Steel <span class="val" id="r-steel">0</span></div>
-    <div class="res-item"><span class="res-icon" style="background:#e2b350"></span>Energy <span class="val" id="r-energy">0</span></div>
-    <div class="res-item"><span class="res-icon" style="background:#4fd8c4"></span>Science <span class="val" id="r-science">0</span></div>
-    <div class="res-item"><span class="res-icon" style="background:#b088e0"></span>Rare Metals <span class="val" id="r-rare">0</span></div>
-    <div class="res-item"><span class="res-icon" style="background:#e2515a"></span>Pop <span class="val" id="r-pop">0</span></div>
-    <div class="spacer"></div>
-    <div id="turn-display">YEAR 1</div>
-    <button id="endturn-btn" onclick="endTurn()">End Turn</button>
+  <div class="hud-topbtns">
+    <div class="icon-btn" id="mapBtn" title="Map">🗺️</div>
+    <div class="icon-btn" id="invBtn" title="Items">🎒</div>
+    <div class="icon-btn" id="pauseBtn" title="Pause">⏸️</div>
   </div>
-  <div id="body">
-    <div id="sidebar">
-      <div class="side-btn active" data-view="map" onclick="setView('map')">🗺 Overview</div>
-      <div class="side-btn" data-view="cities" onclick="setView('cities')">🏙 Cities</div>
-      <div class="side-btn" data-view="military" onclick="setView('military')">⚔ Military</div>
-      <div class="side-btn" data-view="tech" onclick="setView('tech')">🔬 Technology</div>
-      <div class="side-btn" data-view="diplomacy" onclick="setView('diplomacy')">🤝 Diplomacy</div>
-      <div class="side-btn" data-view="economy" onclick="setView('economy')">💰 Economy</div>
-      <div class="side-btn" data-view="exploration" onclick="setView('exploration')">🧭 Exploration</div>
-      <div class="side-btn" data-view="policies" onclick="setView('policies')">👑 Policies</div>
-    </div>
-    <div id="center">
-      <div id="map-wrap"><svg id="map-svg"></svg></div>
-      <div id="view-content"></div>
-      <div class="hint-badge" id="hint-badge">Click a territory to inspect it.</div>
-    </div>
-    <div id="right-panel">
-      <div id="panel-body"><div class="empty-hint">Select a territory, city, or army to see details here.</div></div>
-    </div>
+  <div class="boss-hud" id="bossHud">
+    <div class="boss-name" id="bossName">BOSS</div>
+    <div class="boss-bar-bg"><div class="boss-bar-fill" id="bossBarFill" style="width:100%"></div></div>
+    <div class="boss-phase" id="bossPhase">PHASE 1</div>
+  </div>
+  <div class="hud-bottom">
+    <div class="slot" id="slotPotion"><span id="potionIcon">🧪</span><span class="count" id="potionCount">0</span><span class="key">1</span></div>
+    <div class="slot" id="slotQ"><span>🔥</span><div class="cd" id="cdQ" style="display:none;"></div><span class="key">Q</span></div>
+    <div class="slot" id="slotE"><span>❄️</span><div class="cd" id="cdE" style="display:none;"></div><span class="key">E</span></div>
+    <div class="slot" id="slotDash"><span>💨</span><div class="cd" id="cdDash" style="display:none;"></div><span class="key">SPACE</span></div>
   </div>
 </div>
+<div id="toastArea"></div>
 
-<!-- ============ END SCREEN ============ -->
-<div id="endscreen" class="screen">
-  <div style="text-align:center;">
-    <div class="end-title" id="end-title">EMPIRE FALLEN</div>
-    <div class="end-stats" id="end-stats"></div>
-    <div class="menu-buttons">
-      <button class="menu-btn" onclick="goToSetup()">Play Again</button>
-      <button class="menu-btn" onclick="showScreen('menu')">Main Menu</button>
-    </div>
+<!-- mobile controls -->
+<div id="mobileControls">
+  <div id="joystickZone"><div id="joystickThumb"></div></div>
+  <div class="touch-btn" id="atkBtn">ATK</div>
+  <div class="touch-btn" id="dashBtn">DASH</div>
+  <div class="touch-btn" id="specBtn">SPEC</div>
+</div>
+
+<!-- ===================== SCREENS ===================== -->
+<div class="screen active" id="titleScreen">
+  <div class="title-big">⚔️ ROGUEFALL</div>
+  <div class="subtitle">EVERY RUN ENDS. EVERY RUN MAKES YOU STRONGER.</div>
+  <button class="menu-btn primary" id="btnNewRun">Enter the Dungeon</button>
+  <button class="menu-btn" id="btnHub">The Hub</button>
+  <button class="menu-btn" id="btnStats">Chronicle</button>
+  <div class="small-hint">WASD move · Mouse aim · Click attack · Right-click special · SPACE dash · Q/E abilities</div>
+</div>
+
+<div class="screen" id="cinematicScreen">
+  <div class="cinematic-text" id="cineText1">"They built the dungeon to contain something."</div>
+  <div class="cinematic-text" id="cineText2">"They failed."</div>
+  <button class="menu-btn small" id="btnSkipCine" style="margin-top:40px;">Skip ▶</button>
+</div>
+
+<div class="screen" id="deathScreen">
+  <div class="run-end-title">RUN ENDED</div>
+  <div style="color:var(--dim);letter-spacing:2px;font-size:13px;margin-bottom:8px;" id="deathCause">You were slain.</div>
+  <div class="stat-grid" id="deathStats"></div>
+  <div style="color:var(--epic);font-weight:800;margin-bottom:14px;">+<span id="soulShardsGained">0</span> 🔮 Soul Shards</div>
+  <div class="menu-row">
+    <button class="menu-btn primary" id="btnTryAgain">Try Again</button>
+    <button class="menu-btn" id="btnReturnHub">Return to Hub</button>
   </div>
 </div>
 
-<div id="notif-stack"></div>
-<div class="modal-overlay" id="modal-overlay"><div class="modal" id="modal-inner"></div></div>
+<div class="screen" id="victoryScreen">
+  <div class="victory-title">THE DUNGEON HAS FALLEN</div>
+  <div class="stat-grid" id="victoryStats"></div>
+  <div style="color:var(--epic);font-weight:800;margin-bottom:14px;">+<span id="soulShardsGainedV">0</span> 🔮 Soul Shards</div>
+  <div class="menu-row">
+    <button class="menu-btn primary" id="btnNewGamePlus">Start New Game+</button>
+    <button class="menu-btn" id="btnReturnHub2">Return to Hub</button>
+  </div>
+</div>
+
+<div class="screen" id="hubScreen">
+  <div class="title-big" style="font-size:38px;">THE HUB</div>
+  <div class="shard-count">🔮 <span id="hubShards">0</span> Soul Shards</div>
+  <div class="tab-row" id="hubTabs">
+    <div class="tab-btn active" data-tab="forge">The Forge</div>
+    <div class="tab-btn" data-tab="archive">The Archive</div>
+    <div class="tab-btn" data-tab="chronicle">Chronicle</div>
+    <div class="tab-btn" data-tab="difficulty">Difficulty & Run</div>
+  </div>
+  <div id="hubContent" style="width:min(760px,92vw);max-height:56vh;overflow-y:auto;"></div>
+  <button class="menu-btn" id="btnHubBack" style="margin-top:16px;">Back to Title</button>
+</div>
+
+<!-- pause modal -->
+<div class="modal-bg" id="pauseModal">
+  <div class="modal-box" style="text-align:center;max-width:320px;">
+    <div class="modal-title">PAUSED</div>
+    <div class="menu-row" style="flex-direction:column;">
+      <button class="menu-btn" id="btnResume">Resume</button>
+      <button class="menu-btn" id="btnSoundToggle">Sound: ON</button>
+      <button class="menu-btn" id="btnMusicToggle">Music: ON</button>
+      <button class="menu-btn" id="btnQuitRun">Abandon Run</button>
+    </div>
+  </div>
+</div>
+
+<!-- level up modal -->
+<div class="modal-bg" id="levelUpModal">
+  <div class="modal-box" style="text-align:center;">
+    <div class="modal-title">⬆ LEVEL UP</div>
+    <div style="color:var(--dim);font-size:12px;margin-bottom:14px;">Choose one upgrade</div>
+    <div class="choice-grid" id="levelUpChoices"></div>
+  </div>
+</div>
+
+<!-- item pickup / room reward modal -->
+<div class="modal-bg" id="itemModal">
+  <div class="modal-box" style="text-align:center;">
+    <div class="modal-title" id="itemModalTitle">ROOM CLEARED</div>
+    <div class="choice-grid" id="itemChoices"></div>
+    <div class="menu-row" style="margin-top:16px;">
+      <button class="menu-btn small" id="btnItemContinue">Continue ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- shop modal -->
+<div class="modal-bg" id="shopModal">
+  <div class="modal-box" style="max-width:640px;text-align:center;position:relative;">
+    <div class="close-x" id="closeShop">✕</div>
+    <div class="modal-title">🛒 SHOP</div>
+    <div style="color:var(--gold);margin-bottom:10px;">Gold: <span id="shopGold">0</span></div>
+    <div class="shop-grid" id="shopGrid"></div>
+    <button class="menu-btn small" id="btnLeaveShop">Continue ▶</button>
+  </div>
+</div>
+
+<!-- event modal -->
+<div class="modal-bg" id="eventModal">
+  <div class="modal-box" style="max-width:460px;text-align:center;">
+    <div class="modal-title" id="eventTitle">❓ EVENT</div>
+    <div class="event-text" id="eventText"></div>
+    <div class="event-choices" id="eventChoices"></div>
+  </div>
+</div>
+
+<!-- path choice modal -->
+<div class="modal-bg" id="pathModal">
+  <div class="modal-box" style="text-align:center;">
+    <div class="modal-title">CHOOSE YOUR PATH</div>
+    <div class="choice-grid" id="pathChoices"></div>
+  </div>
+</div>
+
+<!-- map modal -->
+<div class="modal-bg" id="mapModal">
+  <div class="modal-box" style="text-align:center;position:relative;">
+    <div class="close-x" id="closeMap">✕</div>
+    <div class="modal-title">DUNGEON MAP</div>
+    <div class="dmap" id="dmapContent"></div>
+  </div>
+</div>
+
+<!-- inventory modal -->
+<div class="modal-bg" id="invModal">
+  <div class="modal-box" style="text-align:center;position:relative;max-width:560px;">
+    <div class="close-x" id="closeInv">✕</div>
+    <div class="modal-title">🎒 ACTIVE ITEMS</div>
+    <div class="choice-grid" id="invContent"></div>
+  </div>
+</div>
+
+</div>
+</div>
 
 <script>
-/* =========================================================================
-   EMPIRE: AFTERFALL — CORE ENGINE
-   Sections: RNG/WorldGen, Data, State, Rendering, Economy, Combat, AI,
-   Diplomacy, Events, Tech, Save/Load, UI/Views
-   ========================================================================= */
+(function(){
+'use strict';
 
-/* ---------------- RNG (seeded) ---------------- */
-function mulberry32(a){
-  return function(){
-    a|=0;a=a+0x6D2B79F5|0;
-    let t=Math.imul(a^a>>>15,1|a);
-    t=t+Math.imul(t^t>>>7,61|t)^t;
-    return ((t^t>>>14)>>>0)/4294967296;
-  }
-}
-function hashSeed(str){let h=1779033703;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return h>>>0;}
-let RNG=Math.random;
-function rand(){return RNG();}
-function randInt(a,b){return Math.floor(rand()*(b-a+1))+a;}
-function choice(arr){return arr[Math.floor(rand()*arr.length)];}
+/* ============================================================
+   ROGUEFALL — full client-side roguelike
+   ============================================================ */
 
-/* ---------------- STATIC DATA ---------------- */
-const FACTIONS=[
-  {id:'crimson',name:'Crimson Union',color:'#e2515a',desc:'A militaristic faction focused on industrial production and warfare.',
-   strength:'Military',weakness:'Diplomacy',bonus:{military:1.25,diplomacy:0.8},personality:'aggressive'},
-  {id:'azure',name:'Azure Republic',color:'#4f9fd8',desc:'A technologically advanced faction pursuing scientific dominance.',
-   strength:'Research',weakness:'Low military strength',bonus:{science:1.3,military:0.85},personality:'technological'},
-  {id:'iron',name:'Iron Covenant',color:'#9aa4a8',desc:'Industrial survivalists who out-produce every rival.',
-   strength:'Production',weakness:'Slow technological development',bonus:{industry:1.3,science:0.8},personality:'economic'},
-  {id:'verdant',name:'Verdant Collective',color:'#6bc464',desc:'Controls agricultural regions and natural resources.',
-   strength:'Food & Population Growth',weakness:'Limited advanced weaponry',bonus:{food:1.35,military:0.85},personality:'diplomatic'},
-  {id:'nomad',name:'The Nomads',color:'#d6b25f',desc:'Highly mobile survivors who strike fast and vanish.',
-   strength:'Exploration & Movement',weakness:'Weak cities',bonus:{movement:1.4,defense:0.8},personality:'aggressive'},
-];
+const $ = id => document.getElementById(id);
+const rand = (a,b)=> a + Math.random()*(b-a);
+const randi = (a,b)=> Math.floor(rand(a,b+1));
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const clamp = (v,a,b)=> Math.max(a,Math.min(b,v));
+const dist = (a,b)=> Math.hypot(a.x-b.x,a.y-b.y);
 
-const TERRAIN=[
-  {id:'plains',color:'#3a4a35',label:'Plains',bonus:{food:1}},
-  {id:'forest',color:'#28422e',label:'Forest',bonus:{food:2}},
-  {id:'mountain',color:'#4a4640',label:'Mountain',bonus:{defense:25}},
-  {id:'desert',color:'#6b5a3a',label:'Desert',bonus:{energy:1}},
-  {id:'industrial',color:'#524b52',label:'Industrial Zone',bonus:{steel:3}},
-  {id:'ruins',color:'#3f3550',label:'Ruins',bonus:{rare:2}},
-  {id:'river',color:'#28454a',label:'River Basin',bonus:{food:2}},
-  {id:'energyzone',color:'#4a4020',label:'Energy Zone',bonus:{energy:3}},
-];
-
-const TECHS=[
-  // MILITARY
-  {id:'imp_weapons',branch:'Military',name:'Improved Weapons',cost:60,desc:'+15% unit attack.',effect:{attackMult:0.15}},
-  {id:'armored',branch:'Military',name:'Armored Vehicles',cost:120,desc:'Unlocks Armored Vehicle unit.',effect:{unlockUnit:'armor'}},
-  {id:'adv_armor',branch:'Military',name:'Advanced Armor',cost:160,desc:'+15% unit defense.',effect:{defenseMult:0.15}},
-  {id:'drones',branch:'Military',name:'Drone Warfare',cost:150,desc:'Unlocks Drone unit.',effect:{unlockUnit:'drone'}},
-  {id:'rail',branch:'Military',name:'Rail Weapons',cost:260,desc:'+25% artillery attack.',effect:{attackMult:0.25}},
-  {id:'autocombat',branch:'Military',name:'Autonomous Combat',cost:340,desc:'Unlocks Mech unit.',effect:{unlockUnit:'mech'}},
-  // INDUSTRY
-  {id:'autofactory',branch:'Industry',name:'Automated Factories',cost:70,desc:'+20% steel production.',effect:{steelMult:0.2}},
-  {id:'adv_manu',branch:'Industry',name:'Advanced Manufacturing',cost:140,desc:'-15% unit costs.',effect:{unitCostMult:-0.15}},
-  {id:'res_opt',branch:'Industry',name:'Resource Optimization',cost:120,desc:'+15% all resource production.',effect:{allMult:0.15}},
-  {id:'robotics',branch:'Industry',name:'Industrial Robotics',cost:220,desc:'+25% steel production.',effect:{steelMult:0.25}},
-  // SCIENCE
-  {id:'adv_computing',branch:'Science',name:'Advanced Computing',cost:80,desc:'+20% science production.',effect:{scienceMult:0.2}},
-  {id:'energy_research',branch:'Science',name:'Energy Research',cost:130,desc:'+20% energy production.',effect:{energyMult:0.2}},
-  {id:'ai',branch:'Science',name:'Artificial Intelligence',cost:260,desc:'+25% science production.',effect:{scienceMult:0.25}},
-  {id:'quantum',branch:'Science',name:'Quantum Systems',cost:400,desc:'Unlocks late-game bonuses.',effect:{allMult:0.2}},
-  // CIVIL
-  {id:'adv_agri',branch:'Civil',name:'Advanced Agriculture',cost:70,desc:'+20% food production.',effect:{foodMult:0.2}},
-  {id:'medical',branch:'Civil',name:'Medical Infrastructure',cost:120,desc:'+15% population growth.',effect:{growthMult:0.15}},
-  {id:'pop_mgmt',branch:'Civil',name:'Population Management',cost:150,desc:'+10% housing capacity.',effect:{housingMult:0.1}},
-  {id:'transport',branch:'Civil',name:'Automated Transport',cost:180,desc:'+1 army movement.',effect:{moveBonus:1}},
-  // SPECIAL
-  {id:'old_archive',branch:'Special',name:'Old World Archive',cost:300,desc:'Reveals fragments of the Collapse. Requires exploring ruins.',effect:{lore:1}},
-];
-
-const UNIT_TYPES={
-  infantry:{name:'Infantry',cost:{steel:40,credits:20},attack:10,defense:8,move:2,upkeep:1,desc:'Cheap and versatile core unit.'},
-  armor:{name:'Armored Vehicle',cost:{steel:90,credits:40},attack:22,defense:18,move:3,upkeep:3,desc:'Strong against infantry formations.',req:'armored'},
-  artillery:{name:'Artillery',cost:{steel:80,credits:50},attack:28,defense:6,move:1,upkeep:3,desc:'Long-range bombardment unit.'},
-  drone:{name:'Drone Squadron',cost:{energy:60,credits:60},attack:16,defense:10,move:4,upkeep:2,desc:'Fast reconnaissance and strike unit.',req:'drones'},
-  mech:{name:'Mech Walker',cost:{steel:180,rare:40,credits:120},attack:45,defense:35,move:2,upkeep:6,desc:'Extremely powerful, extremely expensive.',req:'autocombat'},
-  defense:{name:'Defense Grid',cost:{steel:70,energy:40},attack:5,defense:30,move:0,upkeep:2,desc:'Static system protecting a territory.'},
-};
-
-const BUILDINGS={
-  industry:{name:'Industry',produces:'Steel',icon:'🏭'},
-  energy:{name:'Energy',produces:'Power/Fuel',icon:'⚡'},
-  agriculture:{name:'Agriculture',produces:'Food',icon:'🌾'},
-  research:{name:'Research',produces:'Science',icon:'🔬'},
-  defense:{name:'Defense',produces:'City defense',icon:'🛡'},
-  housing:{name:'Housing',produces:'Pop capacity',icon:'🏠'},
-};
-
-const EMPIRE_LEVELS=['Survivor','Settlement','Regional Power','Kingdom','Empire','Superpower'];
-
-/* ---------------- GAME STATE ---------------- */
-let G=null; // main game state object
-let selectedTile=null;
-let selectedArmy=null;
-let currentView='map';
-let muted=false;
-let pendingAttack=null;
-
-function newGameState(factionId,seed){
-  RNG=mulberry32(hashSeed(seed||String(Date.now())));
-  const faction=FACTIONS.find(f=>f.id===factionId);
-  const state={
-    seed:seed,
-    year:1,
-    playerFaction:factionId,
-    resources:{credits:400,food:200,steel:250,energy:150,science:50,rare:20},
-    population:1200,
-    empireLevel:0,
-    territories:[],
-    cities:[],
-    armies:[],
-    techsResearched:[],
-    researching:null,researchProgress:0,
-    relations:{},
-    achievements:[],
-    stats:{warsFought:0,techCount:0,territoriesEver:0},
-    log:[],
-    factions:{},
-    activePolicies:[],
-  };
-  FACTIONS.forEach(f=>{
-    state.factions[f.id]={id:f.id,alive:true,personality:f.personality};
-    if(f.id!==factionId) state.relations[f.id]=randInt(-10,20);
-  });
-  generateWorld(state);
-  return state;
-}
-
-/* ---------------- WORLD GENERATION ---------------- */
-const GRID_COLS=14, GRID_ROWS=10, HEXW=64, HEXH=56;
-
-function generateWorld(state){
-  const names=['North','South','East','West','Central','Upper','Lower','Outer','Inner','Old','New','Far'];
-  const nouns=['Industrial Zone','Basin','Ridge','Sector','Wastes','Hollow','Reach','District','Flats','Crossing','Depths','Span'];
-  let id=0;
-  for(let r=0;r<GRID_ROWS;r++){
-    for(let c=0;c<GRID_COLS;c++){
-      const terrain=choice(TERRAIN);
-      state.territories.push({
-        id:id++,
-        col:c,row:r,
-        name:choice(names)+' '+choice(nouns),
-        terrain:terrain.id,
-        owner:null, // null = unowned/neutral
-        population:randInt(500,8000),
-        development:1,
-        defense:terrain.id==='mountain'?randInt(30,50):randInt(5,25),
-        explored:false,
-        resourceYield:baseYieldFor(terrain.id),
-      });
-    }
-  }
-  // place faction capitals spread across the map
-  const spots=shuffle([...state.territories]).slice(0,FACTIONS.length);
-  FACTIONS.forEach((f,i)=>{
-    const t=spots[i];
-    t.owner=f.id; t.population=randInt(9000,15000); t.development=3; t.explored=true; t.capital=true;
-    t.defense+=20;
-    if(f.id===state.playerFaction){
-      state.capitalId=t.id;
-      state.cities.push(makeCity(t));
-      revealAround(state,t,2);
-    } else {
-      state.cities.push(makeCity(t));
-    }
-  });
-  // scatter a few independent settlements
-  state.territories.forEach(t=>{
-    if(!t.owner && rand()<0.06){ t.independent=true; t.population=randInt(1000,4000); }
-  });
-}
-function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
-function baseYieldFor(terrainId){
-  const t=TERRAIN.find(x=>x.id===terrainId);
-  return t.bonus;
-}
-function makeCity(territory){
+/* ---------------- persistent save data ---------------- */
+const SAVE_KEY = 'roguefall_save_v1';
+function defaultSave(){
   return {
-    territoryId:territory.id, name:territory.name, level:1,
-    buildings:{industry:1,energy:1,agriculture:1,research:1,defense:1,housing:1},
-    owner:territory.owner,
+    soulShards: 0,
+    upgrades: { vitality:0, power:0, fortune:0, resilience:0, exploration:0, focus:0, swiftness:0 },
+    achievements: {},
+    stats: { totalRuns:0, totalDeaths:0, enemiesDefeated:0, bossesDefeated:0, highestFloor:0, bestTime:0, totalGold:0, totalDamage:0, itemsFound:0 },
+    discoveredItems: {},
+    difficultyUnlocked: {normal:true, hard:false, nightmare:false, inferno:false},
+    ngPlusUnlocked:false,
+    ngPlusLevel:0,
+    settings:{sound:true, music:true}
   };
 }
-function revealAround(state,center,radius){
-  state.territories.forEach(t=>{
-    const d=Math.abs(t.col-center.col)+Math.abs(t.row-center.row);
-    if(d<=radius) t.explored=true;
+let save = loadSave();
+function loadSave(){
+  try{ const raw = localStorage.getItem(SAVE_KEY); if(raw) return Object.assign(defaultSave(), JSON.parse(raw)); }catch(e){}
+  return defaultSave();
+}
+function persist(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){} }
+
+const UPGRADE_DEFS = {
+  vitality:{name:'Vitality', desc:'+5% starting health per level', max:8, cost:l=>10+l*6},
+  power:{name:'Power', desc:'+3% starting damage per level', max:8, cost:l=>10+l*6},
+  fortune:{name:'Fortune', desc:'Improves item rarity odds', max:6, cost:l=>15+l*8},
+  resilience:{name:'Resilience', desc:'+1 starting potion per level', max:3, cost:l=>20+l*15},
+  exploration:{name:'Exploration', desc:'Reveal more of the dungeon map', max:3, cost:l=>12+l*8},
+  focus:{name:'Focus', desc:'+5% starting mana per level', max:6, cost:l=>8+l*5},
+  swiftness:{name:'Swiftness', desc:'+2% starting move speed per level', max:6, cost:l=>10+l*6}
+};
+
+const ACHIEVEMENT_DEFS = [
+  {id:'first_blood', name:'First Blood', desc:'Defeat your first enemy.'},
+  {id:'boss_slayer', name:'Boss Slayer', desc:'Defeat your first boss.'},
+  {id:'treasure_hunter', name:'Treasure Hunter', desc:'Collect 50 items across all runs.'},
+  {id:'untouchable', name:'Untouchable', desc:'Complete a room without taking damage.'},
+  {id:'legendary', name:'Legendary', desc:'Obtain a Legendary item.'},
+  {id:'build_master', name:'Build Master', desc:'Activate an item synergy.'},
+  {id:'death_defied', name:'Death Defied', desc:'Revive using Phoenix Feather.'},
+  {id:'the_descent', name:'The Descent', desc:'Reach Floor 3.'},
+  {id:'kingslayer', name:'Kingslayer', desc:'Defeat the final boss.'}
+];
+function unlockAchievement(id){
+  if(!save.achievements[id]){
+    save.achievements[id] = true;
+    persist();
+    toast('🏆 Achievement Unlocked', ACHIEVEMENT_DEFS.find(a=>a.id===id).name, 'legendary');
+  }
+}
+
+/* ---------------- item / synergy definitions ---------------- */
+const RARITIES = ['common','uncommon','rare','epic','legendary','mythic'];
+const RARITY_WEIGHT_BASE = {common:100, uncommon:55, rare:26, epic:11, legendary:4, mythic:1};
+
+const ITEM_DEFS = [
+  {id:'flame_heart', name:'Flame Heart', rarity:'rare', tag:'fire', desc:'Every 5th attack ignites the enemy, dealing burn damage over time.'},
+  {id:'inferno_ring', name:'Inferno Ring', rarity:'epic', tag:'fire', desc:'Burn effects deal 40% more damage and spread on death.'},
+  {id:'shadowstep_boots', name:'Shadowstep Boots', rarity:'uncommon', tag:'dash', desc:'After dashing, become briefly invisible and untargetable.'},
+  {id:'assassins_dagger', name:"Assassin's Dagger", rarity:'rare', tag:'dash', desc:'Dashing through an enemy grants a stacking crit chance buff.'},
+  {id:'blood_oath', name:'Blood Oath', rarity:'epic', tag:'blood', desc:'Deal 35% more damage while below half health.'},
+  {id:'thunder_ring', name:'Thunder Ring', rarity:'rare', tag:'crit', desc:'Critical hits release lightning that arcs to nearby enemies.'},
+  {id:'void_mask', name:'Void Mask', rarity:'legendary', tag:'magic', desc:'Abilities have 25% chance to reset cooldown, but using one costs 1% max HP.'},
+  {id:'frost_crown', name:'Frost Crown', rarity:'rare', tag:'frost', desc:'Your attacks slow enemies. Frozen enemies take bonus damage.'},
+  {id:'icebound_armor', name:'Icebound Armor', rarity:'epic', tag:'frost', desc:'Frozen enemies take 50% more damage from all sources.'},
+  {id:'phoenix_feather', name:'Phoenix Feather', rarity:'legendary', tag:'utility', desc:'The first time you would die this run, revive with 40% health instead.'},
+  {id:'gravity_core', name:'Gravity Core', rarity:'epic', tag:'utility', desc:'Attacks pull nearby enemies toward the target.'},
+  {id:'glass_cannon', name:'Glass Cannon', rarity:'rare', tag:'damage', desc:'+50% damage dealt, -30% maximum health.'},
+  {id:'blood_mirror', name:'Blood Mirror', rarity:'epic', tag:'blood', desc:'Reflect 20% of damage taken back at attackers.'},
+  {id:'sharp_edge', name:'Sharp Edge', rarity:'common', tag:'damage', desc:'+10% attack damage.'},
+  {id:'tough_hide', name:'Tough Hide', rarity:'common', tag:'defense', desc:'+15% maximum health.'},
+  {id:'quick_boots', name:'Quick Boots', rarity:'common', tag:'utility', desc:'+12% movement speed.'},
+  {id:'lucky_coin', name:'Lucky Coin', rarity:'common', tag:'utility', desc:'+15% gold from all sources.'},
+  {id:'mana_crystal', name:'Mana Crystal', rarity:'common', tag:'magic', desc:'+20 maximum mana.'},
+  {id:'vampiric_fang', name:'Vampiric Fang', rarity:'uncommon', tag:'blood', desc:'Heal for 6% of damage dealt.'},
+  {id:'berserker_belt', name:"Berserker's Belt", rarity:'uncommon', tag:'damage', desc:'+2% attack damage for every 10% health missing.'},
+  {id:'arcane_battery', name:'Arcane Battery', rarity:'uncommon', tag:'magic', desc:'-20% ability cooldowns.'},
+  {id:'spiked_shield', name:'Spiked Shield', rarity:'uncommon', tag:'defense', desc:'Reflect 10% damage taken and reduce incoming damage by 8%.'},
+  {id:'eagle_eye', name:'Eagle Eye', rarity:'uncommon', tag:'crit', desc:'+8% critical hit chance.'},
+  {id:'executioners_mark', name:"Executioner's Mark", rarity:'rare', tag:'crit', desc:'+60% critical damage.'},
+  {id:'stormcaller', name:'Stormcaller', rarity:'rare', tag:'magic', desc:'Every ability cast has a chance to summon a lightning strike.'},
+  {id:'giants_ring', name:"Giant's Ring", rarity:'rare', tag:'defense', desc:'+25% max health, -8% move speed.'},
+  {id:'soul_siphon', name:'Soul Siphon', rarity:'rare', tag:'blood', desc:'Killing an enemy restores 8% max mana.'},
+  {id:'wanderers_map', name:"Wanderer's Map", rarity:'common', tag:'utility', desc:'Reveals nearby unexplored dungeon rooms.'},
+  {id:'crimson_pact', name:'Crimson Pact', rarity:'epic', tag:'blood', desc:'Attacks heal you, but you take 15% more damage.'},
+  {id:'frozen_heart', name:'Frozen Heart', rarity:'legendary', tag:'frost', desc:'Enemies near you are slowed. You take 20% less damage from slowed enemies.'},
+  {id:'ashen_crown', name:'Ashen Crown', rarity:'legendary', tag:'fire', desc:'On kill, explode in flame damaging and igniting nearby enemies.'},
+  {id:'time_fragment', name:'Time Fragment', rarity:'mythic', tag:'magic', desc:'25% chance on hit to briefly slow time around you.'},
+  {id:'kings_signet', name:"King's Signet", rarity:'mythic', tag:'damage', desc:'+25% damage, +25% max health, +10% move speed. A true build-defining relic.'},
+  {id:'venom_fang', name:'Venom Fang', rarity:'uncommon', tag:'poison', desc:'Attacks poison enemies, dealing damage over time.'},
+  {id:'plague_mask', name:'Plague Mask', rarity:'rare', tag:'poison', desc:'Poison can stack up to 5 times and spreads to nearby enemies on expiry.'},
+  {id:'guardian_totem', name:'Guardian Totem', rarity:'rare', tag:'defense', desc:'Every 15s, gain a shield absorbing the next hit.'},
+  {id:'reckless_charm', name:'Reckless Charm', rarity:'uncommon', tag:'damage', desc:'+18% attack speed, -10% max health.'},
+  {id:'moonlit_veil', name:'Moonlit Veil', rarity:'epic', tag:'dash', desc:'Dash distance +40% and refunds 25% cooldown on kill.'},
+  {id:'ember_core', name:'Ember Core', rarity:'common', tag:'fire', desc:'Small chance on hit to ignite the target.'},
+  {id:'iron_will', name:'Iron Will', rarity:'common', tag:'defense', desc:'+8% damage reduction.'},
+  {id:'goldrush_band', name:'Goldrush Band', rarity:'uncommon', tag:'utility', desc:'Gold pickups have a chance to duplicate.'},
+  {id:'nightshade_cloak', name:'Nightshade Cloak', rarity:'epic', tag:'dash', desc:'While invisible from dashing, deal 30% bonus damage on your next hit.'}
+];
+const ITEM_BY_ID = Object.fromEntries(ITEM_DEFS.map(i=>[i.id,i]));
+
+const SYNERGIES = [
+  {tags:['flame_heart','inferno_ring'], name:'BURN BUILD', desc:'Burn effects become dramatically stronger.'},
+  {tags:['shadowstep_boots','assassins_dagger'], name:'DASH BUILD', desc:'Dodging increases critical chance further.'},
+  {tags:['frost_crown','icebound_armor'], name:'FROZEN BUILD', desc:'Frozen enemies take massive bonus damage.'},
+  {tags:['venom_fang','plague_mask'], name:'PLAGUE BUILD', desc:'Poison spreads uncontrollably.'},
+  {tags:['blood_oath','crimson_pact'], name:'BLOOD BUILD', desc:'Low HP becomes your greatest weapon.'}
+];
+
+/* ---------------- run-level entities ---------------- */
+const canvas = $('gameCanvas');
+const ctx = canvas.getContext('2d');
+let CW = canvas.width, CH = canvas.height;
+
+function resizeCanvas(){
+  const maxW = Math.min(window.innerWidth-20, 1100);
+  const maxH = Math.min(window.innerHeight-20, 720);
+  const ratio = 960/600;
+  let w = maxW, h = w/ratio;
+  if(h>maxH){ h=maxH; w=h*ratio; }
+  canvas.style.width = w+'px';
+  canvas.style.height = h+'px';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+if(isTouch){ $('mobileControls').style.display='block'; }
+
+/* ---------------- input ---------------- */
+const keys = {};
+let mouse = {x:CW/2,y:CH/2,down:false,rdown:false};
+window.addEventListener('keydown', e=>{
+  keys[e.key.toLowerCase()] = true;
+  if(e.key===' '){ e.preventDefault(); tryDash(); }
+  if(e.key.toLowerCase()==='q') tryAbility('q');
+  if(e.key.toLowerCase()==='e') tryAbility('e');
+  if(e.key==='Escape') togglePause();
+  if(e.key==='1') usePotion();
+});
+window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()] = false; });
+canvas.addEventListener('mousemove', e=>{
+  const r = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX-r.left)*(CW/r.width);
+  mouse.y = (e.clientY-r.top)*(CH/r.height);
+});
+canvas.addEventListener('mousedown', e=>{
+  if(e.button===0) mouse.down = true;
+  if(e.button===2){ mouse.rdown = true; tryAbility('special'); }
+});
+window.addEventListener('mouseup', e=>{ if(e.button===0) mouse.down=false; if(e.button===2) mouse.rdown=false; });
+canvas.addEventListener('contextmenu', e=>e.preventDefault());
+
+/* touch joystick */
+let joy = {active:false, dx:0, dy:0};
+const joyZone = $('joystickZone'), joyThumb = $('joystickThumb');
+function joyHandle(e){
+  const t = e.touches[0]; if(!t) return;
+  const r = joyZone.getBoundingClientRect();
+  const cx = r.left+r.width/2, cy = r.top+r.height/2;
+  let dx = t.clientX-cx, dy = t.clientY-cy;
+  const m = Math.hypot(dx,dy), max=50;
+  if(m>max){ dx=dx/m*max; dy=dy/m*max; }
+  joy.dx = dx/max; joy.dy = dy/max;
+  joyThumb.style.left = (35+dx)+'px'; joyThumb.style.top=(35+dy)+'px';
+}
+joyZone.addEventListener('touchstart', e=>{ joy.active=true; joyHandle(e); });
+joyZone.addEventListener('touchmove', e=>{ e.preventDefault(); joyHandle(e); }, {passive:false});
+joyZone.addEventListener('touchend', ()=>{ joy.active=false; joy.dx=0; joy.dy=0; joyThumb.style.left='35px'; joyThumb.style.top='35px'; });
+$('atkBtn').addEventListener('touchstart', e=>{ e.preventDefault(); mouse.down=true; playerAttack(); setTimeout(()=>mouse.down=false,100); });
+$('dashBtn').addEventListener('touchstart', e=>{ e.preventDefault(); tryDash(); });
+$('specBtn').addEventListener('touchstart', e=>{ e.preventDefault(); tryAbility('q'); });
+
+/* ---------------- floor / room / boss config ---------------- */
+const FLOORS = [
+  {name:'The Forgotten Crypt', bg:'#14141f', bossId:'gravekeeper'},
+  {name:'The Bloodforge', bg:'#1a1013', bossId:'bloodforged'},
+  {name:'The Sunken Citadel', bg:'#0f1a1c', bossId:'drownedking'}
+];
+const BOSS_DEFS = {
+  gravekeeper:{name:'THE GRAVEKEEPER', hp:520, color:'#8a8a9a', reward:'sharp_edge'},
+  bloodforged:{name:'THE BLOODFORGED', hp:760, color:'#c04040', reward:'blood_mirror'},
+  drownedking:{name:'THE DROWNED KING', hp:1050, color:'#2a8aa0', reward:'frost_crown'}
+};
+
+const ENEMY_TYPES = [
+  {id:'skeleton', name:'Skeleton', hp:26, dmg:7, speed:1.5, color:'#c9c9d4', xp:10, gold:[3,7], ranged:false},
+  {id:'wraith', name:'Wraith', hp:18, dmg:5, speed:2.1, color:'#7d5ba6', xp:12, gold:[2,6], ranged:true},
+  {id:'brute', name:'Brute', hp:60, dmg:14, speed:1.0, color:'#8a5a3a', xp:22, gold:[6,12], ranged:false},
+  {id:'archer', name:'Bone Archer', hp:16, dmg:9, speed:1.2, color:'#a68a4a', xp:14, gold:[4,8], ranged:true},
+  {id:'slime', name:'Corrupt Ooze', hp:34, dmg:6, speed:0.9, color:'#4a9a5a', xp:11, gold:[3,6], ranged:false},
+];
+
+/* ---------------- global game/run state ---------------- */
+let G = null; // current run state, null when not in run
+let difficultySelected = 'normal';
+
+function freshPlayer(){
+  const u = save.upgrades;
+  const baseHP = 100*(1+0.05*u.vitality);
+  const baseMana = 50*(1+0.05*u.focus);
+  const baseDmg = 10*(1+0.03*u.power);
+  const baseSpeed = 2.6*(1+0.02*u.swiftness);
+  return {
+    x:CW/2, y:CH/2, r:14, hp:baseHP, maxHp:baseHP, mana:baseMana, maxMana:baseMana,
+    baseDmg:baseDmg, dmg:baseDmg, defense:0, speed:baseSpeed, critChance:0.06, critDmg:1.6, luck:0,
+    facing:0, level:1, xp:0, xpNext:30, gold:0,
+    invuln:0, dashCd:0, dashCdMax:1.1, qCd:0, qCdMax:6, eCd:0, eCdMax:8,
+    potions: 1+u.resilience, potionHealAmt:35,
+    items:[], synergiesActive:new Set(),
+    phoenixUsed:false, invisTimer:0, dashing:false, dashTimer:0, dashDir:{x:0,y:0},
+    attackCooldown:0, attackRate:0.45, comboCount:0, alive:true,
+    burnStacks:0, poisonStacks:0, gravity:0, statusSlowRes:0
+  };
+}
+
+function startNewRun(diff, ngPlus){
+  const p = freshPlayer();
+  const mult = {normal:1, hard:1.35, nightmare:1.8, inferno:2.4}[diff]||1;
+  G = {
+    player:p, floorIdx:0, roomsCleared:0, difficulty:diff, diffMult: mult*(1+ (ngPlus?ngPlus*0.25:0)),
+    ngPlus: ngPlus||0,
+    dungeon:null, currentRoomId:null,
+    enemies:[], projectiles:[], particles:[], damageNumbers:[], drops:[],
+    inCombat:false, roomCleared:false, tookDamageThisRoom:false,
+    bossActive:null,
+    startTime:performance.now(),
+    stats:{enemiesDefeated:0, bossesDefeated:0, goldCollected:0, damageDealt:0, itemsCollected:0},
+    paused:false, gameOver:false,
+    shakeTime:0, shakeMag:0,
+    lastFloorEnter:performance.now()
+  };
+  applyStartingUpgrades();
+  generateDungeon();
+  enterRoom(G.dungeon.startId);
+  showHUD(true);
+  updateHUD();
+}
+
+function applyStartingUpgrades(){
+  // fortune influences rarity table globally via getWeightedRarity()
+}
+
+/* ---------------- dungeon generation ---------------- */
+function generateDungeon(){
+  // simple layered graph: layers of rooms, guaranteed path to boss
+  const floor = FLOORS[G.floorIdx];
+  const layers = 4; // rooms between start and boss
+  const nodes = {};
+  let idc = 0;
+  function mk(type){ const id='r'+(idc++); nodes[id]={id,type,x:0,y:0,visited:false,connections:[],cleared:false}; return id; }
+  const startId = mk('start'); nodes[startId].cleared=true; nodes[startId].visited=true;
+  let prevLayer = [startId];
+  const allTypesPool = ['combat','combat','elite','treasure','shop','event','rest'];
+  for(let l=0;l<layers;l++){
+    const count = l===layers-1 ? 1 : randi(1,2);
+    const thisLayer = [];
+    for(let c=0;c<count;c++){
+      let type;
+      if(l===layers-1){ type='boss'; }
+      else{
+        type = choice(allTypesPool);
+        if(l===0 && type==='shop') type='combat';
+      }
+      const id = mk(type);
+      thisLayer.push(id);
+    }
+    // connect each prev node to 1-2 next nodes, ensure every next node reachable
+    thisLayer.forEach((nid,i)=>{
+      const src = prevLayer[i % prevLayer.length];
+      nodes[src].connections.push(nid);
+      nodes[nid].connections.push(src);
+    });
+    // extra cross links for choice
+    if(prevLayer.length>1 && thisLayer.length>1){
+      const a = choice(prevLayer), b = choice(thisLayer);
+      if(!nodes[a].connections.includes(b)){ nodes[a].connections.push(b); nodes[b].connections.push(a); }
+    }
+    prevLayer = thisLayer;
+  }
+  const bossId = prevLayer[0];
+  G.dungeon = {nodes, startId, bossId, floorName:floor.name};
+  layoutNodes();
+}
+function layoutNodes(){
+  // BFS layer assignment for map drawing
+  const nodes = G.dungeon.nodes;
+  const layerOf = {}; const q=[G.dungeon.startId]; layerOf[G.dungeon.startId]=0;
+  let i=0;
+  while(i<q.length){
+    const cur=q[i++];
+    nodes[cur].connections.forEach(cid=>{
+      if(!(cid in layerOf)){ layerOf[cid]=layerOf[cur]+1; q.push(cid); }
+    });
+  }
+  const byLayer = {};
+  Object.keys(nodes).forEach(id=>{
+    const l = layerOf[id]||0;
+    (byLayer[l]=byLayer[l]||[]).push(id);
+  });
+  Object.keys(byLayer).forEach(l=>{
+    const arr = byLayer[l];
+    arr.forEach((id,idx)=>{ nodes[id].x=+l; nodes[id].y=idx-(arr.length-1)/2; });
   });
 }
 
-/* ---------------- SCREEN / VIEW MANAGEMENT ---------------- */
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+const ROOM_ICON = {start:'◇', combat:'⚔', elite:'💀', treasure:'💰', shop:'🛒', event:'❓', rest:'❤', boss:'👑'};
+
+/* ---------------- room entry ---------------- */
+function enterRoom(roomId){
+  const node = G.dungeon.nodes[roomId];
+  G.currentRoomId = roomId;
+  node.visited = true;
+  G.tookDamageThisRoom = false;
+  G.enemies = []; G.projectiles=[]; G.drops=[];
+  G.player.x = CW/2; G.player.y = CH-80;
+  $('roomLabel').textContent = 'Room: '+capitalize(node.type);
+
+  hideAllModals();
+  $('bossHud').classList.remove('active');
+  G.bossActive = null;
+
+  if(node.cleared){
+    G.inCombat=false; G.roomCleared=true;
+    if(node.type==='boss'){ /* already cleared boss room, nothing */ }
+    return;
+  }
+
+  switch(node.type){
+    case 'start': G.inCombat=false; G.roomCleared=true; node.cleared=true; break;
+    case 'combat': spawnCombatRoom(false); break;
+    case 'elite': spawnCombatRoom(true); break;
+    case 'treasure': openTreasureRoom(); break;
+    case 'shop': openShop(); break;
+    case 'event': openEvent(); break;
+    case 'rest': openRest(); break;
+    case 'boss': spawnBoss(); break;
+  }
 }
-function goToSetup(){
-  showScreen('setup');
-  const grid=document.getElementById('faction-grid');
-  grid.innerHTML='';
-  FACTIONS.forEach(f=>{
-    const div=document.createElement('div');
-    div.className='faction-card';
-    div.id='fc-'+f.id;
-    div.innerHTML=`<div class="faction-name" style="color:${f.color}">${f.name}</div>
-      <div class="faction-desc">${f.desc}</div>
-      <div class="faction-stat">Strength: ${f.strength}</div>
-      <div class="faction-stat" style="color:#c98a8a">Weakness: ${f.weakness}</div>`;
-    div.onclick=()=>selectFaction(f.id);
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function spawnCombatRoom(elite){
+  G.inCombat = true; G.roomCleared = false;
+  const n = elite ? randi(2,3) : randi(3,5);
+  const pool = elite ? ENEMY_TYPES.slice() : ENEMY_TYPES;
+  for(let i=0;i<n;i++){
+    const t = choice(pool);
+    const e = spawnEnemy(t, elite);
+    G.enemies.push(e);
+  }
+}
+function spawnEnemy(t, elite){
+  const mult = G.diffMult * (1+ G.floorIdx*0.35);
+  const eliteMult = elite ? 2.1 : 1;
+  const ang = rand(0,Math.PI*2);
+  const rad = rand(150,260);
+  return {
+    type:t.id, name:t.name, x: CW/2+Math.cos(ang)*rad, y: CH/2+Math.sin(ang)*rad,
+    r: elite?20:15, hp: t.hp*mult*eliteMult, maxHp: t.hp*mult*eliteMult,
+    dmg: t.dmg*mult*(elite?1.5:1), speed:t.speed*(elite?0.9:1), color: elite?'#e8a94d':t.color,
+    xp: t.xp*(elite?3:1), gold: t.gold, ranged: t.ranged, elite:elite,
+    atkCd:0, hitFlash:0, slow:0, burn:0, poison:0, knockback:{x:0,y:0}, alive:true,
+    telegraph:0
+  };
+}
+
+function spawnBoss(){
+  G.inCombat = true; G.roomCleared = false;
+  const floor = FLOORS[G.floorIdx];
+  const def = BOSS_DEFS[floor.bossId];
+  const mult = G.diffMult;
+  const boss = {
+    id:floor.bossId, name:def.name, x:CW/2, y:150, r:38, hp:def.hp*mult, maxHp:def.hp*mult,
+    dmg: 16*mult, speed:1.0, color:def.color, phase:1, phaseTimer:0, atkCd:1.5, atkPattern:0,
+    telegraph:0, hitFlash:0, alive:true, arenaHazard:false, hazards:[], reward:def.reward,
+    summonCd:6
+  };
+  G.bossActive = boss;
+  G.enemies = [boss];
+  $('bossHud').classList.add('active');
+  $('bossName').textContent = boss.name;
+  $('bossPhase').textContent = 'PHASE 1';
+  updateBossBar();
+  spawnParticleBurst(boss.x,boss.y,'#ff4040',30);
+  screenShake(0.4,8);
+}
+
+/* ---------------- treasure / shop / event / rest ---------------- */
+function openTreasureRoom(){
+  G.inCombat=false;
+  const node = G.dungeon.nodes[G.currentRoomId];
+  const opts = rollItems(3, true);
+  showItemChoice('💰 TREASURE ROOM', opts, (picked)=>{
+    grantItem(picked);
+    node.cleared=true; G.roomCleared=true;
+  });
+}
+function openShop(){
+  G.inCombat=false;
+  const node = G.dungeon.nodes[G.currentRoomId];
+  const grid = $('shopGrid'); grid.innerHTML='';
+  const stock = [
+    {name:'Healing Draught', desc:'Restore 50% max health.', price:20+G.floorIdx*8, action:()=>{ G.player.hp=Math.min(G.player.maxHp, G.player.hp+G.player.maxHp*0.5); toast('Healed','+50% HP','uncommon');} },
+    {name:'Extra Potion', desc:'+1 potion slot use.', price:15+G.floorIdx*6, action:()=>{ G.player.potions++; }},
+    {name:'Weapon Whetstone', desc:'+8% permanent attack this run.', price:30+G.floorIdx*10, action:()=>{ G.player.dmg*=1.08; G.player.baseDmg*=1.08; }},
+    {name:'Reinforced Armor', desc:'+10% max health this run.', price:30+G.floorIdx*10, action:()=>{ const r=G.player.hp/G.player.maxHp; G.player.maxHp*=1.1; G.player.hp=G.player.maxHp*r; }},
+    {name:'Random Item', desc:'A mystery relic.', price:45+G.floorIdx*12, action:()=>{ grantItem(choice(rollItems(1,true))); }},
+  ];
+  stock.forEach(s=>{
+    const div = document.createElement('div'); div.className='shop-item';
+    div.innerHTML = `<div class="sname">${s.name}</div><div class="sdesc">${s.desc}</div><div class="sprice">💰 ${s.price}</div><button class="buy-btn">Buy</button>`;
+    const btn = div.querySelector('button');
+    btn.disabled = G.player.gold < s.price;
+    btn.onclick = ()=>{
+      if(G.player.gold>=s.price){ G.player.gold-=s.price; s.action(); btn.disabled=true; btn.textContent='Bought'; updateHUD(); $('shopGold').textContent=G.player.gold; refreshShopBtns();}
+    };
     grid.appendChild(div);
   });
-  selectFaction('crimson');
+  function refreshShopBtns(){ [...grid.querySelectorAll('.buy-btn')].forEach((b,i)=>{ if(!b.disabled) b.disabled = G.player.gold<stock[i].price; }); }
+  $('shopGold').textContent = G.player.gold;
+  showModal('shopModal');
+  $('closeShop').onclick = $('btnLeaveShop').onclick = ()=>{ hideModal('shopModal'); node.cleared=true; G.roomCleared=true; };
 }
-let chosenFaction='crimson';
-function selectFaction(id){
-  chosenFaction=id;
-  document.querySelectorAll('.faction-card').forEach(c=>c.classList.remove('selected'));
-  document.getElementById('fc-'+id).classList.add('selected');
-}
-function startGame(){
-  const seed=document.getElementById('seed-input').value.trim();
-  G=newGameState(chosenFaction,seed);
-  showScreen('game');
-  selectedTile=null;selectedArmy=null;currentView='map';
-  setView('map');
-  renderAll();
-  notify('Campaign Started','Your faction, '+FACTIONS.find(f=>f.id===chosenFaction).name+', begins its story.','info');
-  saveGame();
-}
-function continueGame(){
-  const raw=localStorage.getItem('empire_afterfall_save');
-  if(!raw){notify('No Save Found','Start a new campaign first.','warn');return;}
-  G=JSON.parse(raw);
-  showScreen('game');
-  selectedTile=null;selectedArmy=null;currentView='map';
-  setView('map');
-  renderAll();
-}
-window.addEventListener('DOMContentLoaded',()=>{
-  if(localStorage.getItem('empire_afterfall_save')) document.getElementById('continue-btn').disabled=false;
-  else document.getElementById('continue-btn').disabled=true;
-});
-function toggleMute(){muted=!muted;document.getElementById('mute-btn').textContent='Sound: '+(muted?'Off':'On');}
-function showHowTo(){
-  openModal('How To Play',`
-    <p style="margin-bottom:10px;">You lead a surviving faction in a collapsed world. Each turn ("Year") you manage resources, build up cities, research technology, move armies, and interact with rival factions.</p>
-    <p style="margin-bottom:10px;">Click any territory on the map to see its details. Build on your own territories, attack neighboring enemy or neutral ones, and research technologies to unlock new units and bonuses.</p>
-    <p>End your turn to let the world advance. Watch your Capital — if it falls, your empire falls with it.</p>
-  `,[{label:'Got It',action:closeModal}]);
-}
-
-/* ---------------- SIDEBAR / VIEW SWITCH ---------------- */
-function setView(view){
-  currentView=view;
-  document.querySelectorAll('.side-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
-  const mapWrap=document.getElementById('map-wrap');
-  const content=document.getElementById('view-content');
-  const hint=document.getElementById('hint-badge');
-  if(view==='map'){
-    mapWrap.style.display='block'; content.classList.remove('active'); content.innerHTML='';
-    hint.style.display='block';
-  } else {
-    mapWrap.style.display='none'; content.classList.add('active'); hint.style.display='none';
-    renderView(view);
-  }
-}
-
-/* ---------------- RENDER: MAP ---------------- */
-function ownerColor(ownerId){
-  if(!ownerId) return null;
-  const f=FACTIONS.find(x=>x.id===ownerId);
-  return f?f.color:'#666';
-}
-function renderMap(){
-  const svg=document.getElementById('map-svg');
-  const w=GRID_COLS*HEXW+HEXW, h=GRID_ROWS*HEXH+HEXH;
-  svg.setAttribute('width',w); svg.setAttribute('height',h);
-  svg.innerHTML='';
-  G.territories.forEach(t=>{
-    const x=t.col*HEXW + (t.row%2? HEXW/2:0) + 30;
-    const y=t.row*HEXH*0.82 + 30;
-    const terr=TERRAIN.find(tt=>tt.id===t.terrain);
-    let fill=terr.color;
-    let opacity=1;
-    if(!t.explored){fill='#101315';opacity=1;}
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    const poly=hexPoints(x,y,HEXW*0.52,HEXH*0.52);
-    const el=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-    el.setAttribute('points',poly);
-    el.setAttribute('class','tile'+(selectedTile===t.id?' selected':''));
-    el.setAttribute('fill',fill);
-    el.setAttribute('fill-opacity',opacity);
-    el.onclick=()=>selectTerritory(t.id);
-    g.appendChild(el);
-    if(t.explored){
-      if(t.owner){
-        const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
-        ring.setAttribute('cx',x);ring.setAttribute('cy',y);ring.setAttribute('r',6);
-        ring.setAttribute('fill',ownerColor(t.owner));
-        ring.setAttribute('stroke','#000');ring.setAttribute('stroke-width','1');
-        g.appendChild(ring);
-        if(t.capital){
-          const star=document.createElementNS('http://www.w3.org/2000/svg','text');
-          star.setAttribute('x',x);star.setAttribute('y',y-10);star.setAttribute('text-anchor','middle');
-          star.setAttribute('font-size','11');star.textContent='★';star.setAttribute('fill','#fff');
-          g.appendChild(star);
-        }
-      }
-      const label=document.createElementNS('http://www.w3.org/2000/svg','text');
-      label.setAttribute('x',x);label.setAttribute('y',y+18);label.setAttribute('text-anchor','middle');
-      label.setAttribute('class','tile-label');label.textContent=t.name;
-      g.appendChild(label);
-    } else {
-      const q=document.createElementNS('http://www.w3.org/2000/svg','text');
-      q.setAttribute('x',x);q.setAttribute('y',y+4);q.setAttribute('text-anchor','middle');
-      q.setAttribute('font-size','13');q.setAttribute('fill','#3a4448');q.textContent='?';
-      g.appendChild(q);
-    }
-    svg.appendChild(g);
-  });
-  // armies
-  G.armies.forEach(a=>{
-    const t=G.territories[a.territoryId];
-    const x=t.col*HEXW + (t.row%2? HEXW/2:0) + 30;
-    const y=t.row*HEXH*0.82 + 30 + 14;
-    const marker=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    marker.setAttribute('x',x-5);marker.setAttribute('y',y-5);marker.setAttribute('width',10);marker.setAttribute('height',10);
-    marker.setAttribute('fill',ownerColor(a.owner));marker.setAttribute('stroke','#fff');marker.setAttribute('stroke-width','1');
-    marker.setAttribute('class','army-marker');
-    marker.onclick=(e)=>{e.stopPropagation();selectArmyMarker(a.id);};
-    svg.appendChild(marker);
-  });
-}
-function hexPoints(cx,cy,rx,ry){
-  let pts=[];
-  for(let i=0;i<6;i++){
-    const ang=Math.PI/180*(60*i-30);
-    pts.push((cx+rx*Math.cos(ang)).toFixed(1)+','+(cy+ry*Math.sin(ang)).toFixed(1));
-  }
-  return pts.join(' ');
-}
-
-/* ---------------- SELECTION / RIGHT PANEL ---------------- */
-function selectTerritory(id){
-  selectedTile=id; selectedArmy=null;
-  renderMap();
-  renderRightPanel();
-}
-function selectArmyMarker(id){
-  selectedArmy=id; selectedTile=null;
-  renderMap();
-  renderRightPanel();
-}
-function renderRightPanel(){
-  const body=document.getElementById('panel-body');
-  if(selectedArmy!==null){
-    const a=G.armies.find(x=>x.id===selectedArmy);
-    if(!a){body.innerHTML='<div class="empty-hint">Army no longer exists.</div>';return;}
-    const t=G.territories[a.territoryId];
-    const totalAtk=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].attack*u.count,0);
-    const totalDef=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].defense*u.count,0);
-    body.innerHTML=`<h3>${a.name}</h3>
-      <div class="info-row"><span>Location</span><span class="v">${t.name}</span></div>
-      <div class="info-row"><span>Owner</span><span class="v">${factionName(a.owner)}</span></div>
-      <div class="info-row"><span>Total Strength</span><span class="v">${totalAtk}</span></div>
-      <div class="info-row"><span>Total Defense</span><span class="v">${totalDef}</span></div>
-      <div class="panel-section"><h3>Units</h3>
-      ${a.units.map(u=>`<div class="info-row"><span>${UNIT_TYPES[u.type].name}</span><span class="v">x${u.count}</span></div>`).join('')}
-      </div>
-      ${a.owner===G.playerFaction?`
-      <div class="panel-section">
-        <h3>Orders</h3>
-        <button class="mini-btn" onclick="openMoveModal(${a.id})">Move Army</button>
-        ${neighborHasEnemy(t)?`<button class="mini-btn danger" onclick="openAttackModal(${a.id})">Attack Adjacent</button>`:''}
-        <button class="mini-btn danger" onclick="disbandArmy(${a.id})">Disband</button>
-      </div>`:''}
-    `;
-    return;
-  }
-  if(selectedTile!==null){
-    const t=G.territories[selectedTile];
-    if(!t.explored){
-      body.innerHTML=`<h3>Unknown Territory</h3><div class="empty-hint">Send a scout or expedition to reveal this region. Visit the Exploration tab.</div>`;
-      return;
-    }
-    const terr=TERRAIN.find(x=>x.id===t.terrain);
-    const city=G.cities.find(c=>c.territoryId===t.id);
-    body.innerHTML=`<h3>${t.name}</h3>
-      <div class="info-row"><span>Owner</span><span class="v">${t.owner?factionName(t.owner):(t.independent?'Independent':'Unclaimed')}</span></div>
-      <div class="info-row"><span>Terrain</span><span class="v">${terr.label}</span></div>
-      <div class="info-row"><span>Population</span><span class="v">${t.population.toLocaleString()}</span></div>
-      <div class="info-row"><span>Defense</span><span class="v">${t.defense}</span></div>
-      <div class="info-row"><span>Development</span><span class="v">Level ${t.development}</span></div>
-      <div class="info-row"><span>Resources</span><span class="v">${Object.keys(terr.bonus).join(', ')}</span></div>
-      ${city?`<div class="panel-section"><h3>City</h3><div class="info-row"><span>City Level</span><span class="v">${city.level}</span></div></div>`:''}
-      <div class="panel-section">
-        ${renderTerritoryActions(t)}
-      </div>
-    `;
-    return;
-  }
-  body.innerHTML='<div class="empty-hint">Select a territory, city, or army to see details here.</div>';
-}
-function factionName(id){const f=FACTIONS.find(x=>x.id===id);return f?f.name:'Unknown';}
-function neighborHasEnemy(t){
-  return neighbors(t).some(n=>n.owner && n.owner!==G.playerFaction);
-}
-function neighbors(t){
-  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
-  return dirs.map(([dc,dr])=>G.territories.find(x=>x.col===t.col+dc&&x.row===t.row+dr)).filter(Boolean);
-}
-function renderTerritoryActions(t){
-  let html='';
-  if(t.owner===G.playerFaction){
-    const city=G.cities.find(c=>c.territoryId===t.id);
-    html+=`<h3>Actions</h3>`;
-    if(city){
-      html+=`<button class="mini-btn" onclick="setView('cities')">Manage City</button>`;
-    }
-    html+=`<button class="mini-btn" onclick="openRecruitModal(${t.id})">Recruit Units</button>`;
-  } else if(!t.owner && !t.independent){
-    html+=`<h3>Actions</h3><button class="mini-btn" onclick="claimTerritory(${t.id})">Settle / Claim (200 Credits)</button>`;
-  } else if(t.independent){
-    html+=`<h3>Actions</h3><div class="empty-hint" style="padding:8px 0;">Independent settlement. Can be annexed by force or influence.</div>
-    <button class="mini-btn" onclick="annexIndependent(${t.id})">Annex Peacefully (300 Credits)</button>`;
-  } else if(t.owner && t.owner!==G.playerFaction){
-    html+=`<h3>Actions</h3><div class="empty-hint" style="padding:8px 0;">Owned by ${factionName(t.owner)}. Move an army adjacent to attack.</div>`;
-  }
-  return html;
-}
-function claimTerritory(id){
-  const t=G.territories[id];
-  if(G.resources.credits<200){notify('Not Enough Credits','You need 200 Credits to settle this territory.','warn');return;}
-  G.resources.credits-=200;
-  t.owner=G.playerFaction; t.development=1;
-  G.cities.push(makeCity(t));
-  revealAround(G,t,1);
-  notify('Territory Claimed','Your faction has settled '+t.name+'.','info');
-  renderAll();
-}
-function annexIndependent(id){
-  const t=G.territories[id];
-  if(G.resources.credits<300){notify('Not Enough Credits','You need 300 Credits.','warn');return;}
-  G.resources.credits-=300;
-  t.owner=G.playerFaction; t.independent=false;
-  G.cities.push(makeCity(t));
-  notify('Settlement Annexed',t.name+' has joined your empire peacefully.','info');
-  renderAll();
-}
-
-/* ---------------- CITIES VIEW ---------------- */
-function renderView(view){
-  const c=document.getElementById('view-content');
-  if(view==='cities') return renderCitiesView(c);
-  if(view==='military') return renderMilitaryView(c);
-  if(view==='tech') return renderTechView(c);
-  if(view==='diplomacy') return renderDiplomacyView(c);
-  if(view==='economy') return renderEconomyView(c);
-  if(view==='exploration') return renderExplorationView(c);
-  if(view==='policies') return renderPoliciesView(c);
-}
-function renderCitiesView(c){
-  const myCities=G.cities.filter(ct=>ct.owner===G.playerFaction);
-  let html=`<div class="view-header">Cities (${myCities.length})</div><div class="card-grid">`;
-  myCities.forEach(city=>{
-    const t=G.territories[city.territoryId];
-    html+=`<div class="card">
-      <h4>${city.name} ${t.capital?'★':''}</h4>
-      <div class="desc">Level ${city.level} — ${cityLevelLabel(city.level)}</div>
-      ${Object.keys(BUILDINGS).map(b=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-size:11.5px;color:var(--text-dim);">${BUILDINGS[b].icon} ${BUILDINGS[b].name} Lv${city.buildings[b]}</span>
-          <button class="mini-btn" style="width:auto;margin:0;padding:4px 8px;" onclick="upgradeBuilding(${city.territoryId},'${b}')">+</button>
-        </div>`).join('')}
-    </div>`;
-  });
-  html+='</div>';
-  c.innerHTML=html;
-}
-function cityLevelLabel(lvl){
-  if(lvl<=1)return 'Small Settlement';
-  if(lvl<=3)return 'Developing City';
-  if(lvl<=5)return 'Industrial Metropolis';
-  return 'Advanced Fortress City';
-}
-function buildingCost(currentLevel){return 60+currentLevel*45;}
-function upgradeBuilding(territoryId,b){
-  const city=G.cities.find(c=>c.territoryId===territoryId);
-  const cost=buildingCost(city.buildings[b]);
-  if(G.resources.credits<cost){notify('Insufficient Credits',`Upgrading ${BUILDINGS[b].name} costs ${cost} Credits.`,'warn');return;}
-  G.resources.credits-=cost;
-  city.buildings[b]++;
-  const t=G.territories[territoryId];
-  city.level=Math.max(...Object.values(city.buildings));
-  t.development=city.level;
-  notify('Building Upgraded',`${BUILDINGS[b].name} in ${city.name} is now Level ${city.buildings[b]}.`,'info');
-  renderAll();
-}
-
-/* ---------------- MILITARY VIEW ---------------- */
-function renderMilitaryView(c){
-  const myArmies=G.armies.filter(a=>a.owner===G.playerFaction);
-  let html=`<div class="view-header">Military Command</div>`;
-  html+=`<div class="tabs"><div class="tab active">Armies (${myArmies.length})</div></div>`;
-  html+=`<div class="card-grid">`;
-  if(myArmies.length===0) html+=`<div class="empty-hint">No armies yet. Recruit units from a territory panel.</div>`;
-  myArmies.forEach(a=>{
-    const t=G.territories[a.territoryId];
-    const atk=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].attack*u.count,0);
-    html+=`<div class="card"><h4>${a.name}</h4><div class="desc">At ${t.name} — Strength ${atk}</div>
-      ${a.units.map(u=>`<span class="tag">${UNIT_TYPES[u.type].name} x${u.count}</span>`).join('')}
-      <div style="margin-top:10px;"><button class="mini-btn" onclick="selectArmyMarker(${a.id});setView('map')">Inspect on Map</button></div>
-    </div>`;
-  });
-  html+='</div>';
-  html+=`<div class="view-header" style="margin-top:26px;">Available Unit Types</div><div class="card-grid">`;
-  Object.entries(UNIT_TYPES).forEach(([key,u])=>{
-    const locked=u.req && !G.techsResearched.includes(u.req);
-    html+=`<div class="card" style="${locked?'opacity:.4':''}">
-      <h4>${u.name}${locked?' (Locked)':''}</h4>
-      <div class="desc">${u.desc}</div>
-      <div style="font-size:11px;color:var(--text-dim);">ATK ${u.attack} · DEF ${u.defense} · MOV ${u.move} · Upkeep ${u.upkeep}</div>
-      <div style="font-size:11px;color:var(--gold);margin-top:4px;">Cost: ${Object.entries(u.cost).map(([k,v])=>v+' '+k).join(', ')}</div>
-    </div>`;
-  });
-  html+='</div>';
-  c.innerHTML=html;
-}
-
-/* ---------------- TECH VIEW ---------------- */
-function renderTechView(c){
-  let html=`<div class="view-header">Technology Tree</div>`;
-  if(G.researching){
-    const t=TECHS.find(x=>x.id===G.researching);
-    html+=`<div class="card" style="margin-bottom:18px;max-width:400px;"><h4>Researching: ${t.name}</h4>
-      <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,G.researchProgress/t.cost*100)}%"></div></div>
-      <div class="desc">${G.researchProgress.toFixed(0)} / ${t.cost} Science</div></div>`;
-  }
-  const branches=['Military','Industry','Science','Civil','Special'];
-  branches.forEach(branch=>{
-    html+=`<div class="view-header" style="font-size:14px;margin-top:20px;">${branch}</div><div class="card-grid">`;
-    TECHS.filter(t=>t.branch===branch).forEach(t=>{
-      const done=G.techsResearched.includes(t.id);
-      const active=G.researching===t.id;
-      html+=`<div class="card" style="${done?'border-color:var(--accent);':''}">
-        <h4>${t.name} ${done?'✓':''}</h4>
-        <div class="desc">${t.desc}</div>
-        <div style="font-size:11px;color:var(--text-dim);">Cost: ${t.cost} Science</div>
-        ${!done?`<button class="mini-btn" ${active?'disabled':''} onclick="startResearch('${t.id}')">${active?'In Progress':'Research'}</button>`:''}
-      </div>`;
-    });
-    html+='</div>';
-  });
-  c.innerHTML=html;
-}
-function startResearch(id){
-  if(G.researching===id)return;
-  G.researching=id; G.researchProgress=0;
-  notify('Research Started','Your scientists begin work on '+TECHS.find(t=>t.id===id).name+'.','info');
-  renderAll();
-}
-
-/* ---------------- DIPLOMACY VIEW ---------------- */
-function renderDiplomacyView(c){
-  let html=`<div class="view-header">Diplomacy</div><div class="card-grid">`;
-  FACTIONS.filter(f=>f.id!==G.playerFaction).forEach(f=>{
-    if(!G.factions[f.id].alive){
-      html+=`<div class="card" style="opacity:.4;"><h4 style="color:${f.color}">${f.name}</h4><div class="desc">This faction has been eliminated.</div></div>`;
-      return;
-    }
-    const rel=G.relations[f.id];
-    const status=rel>40?'FRIENDLY':rel>0?'NEUTRAL':rel>-30?'TENSE':'HOSTILE';
-    const atWar=G.relations['war_'+f.id];
-    html+=`<div class="card">
-      <h4 style="color:${f.color}">${f.name}</h4>
-      <div class="desc">Strength: ${f.strength} · Weakness: ${f.weakness}</div>
-      <div class="info-row"><span>Relationship</span><span class="v">${rel>0?'+':''}${rel} ${status}</span></div>
-      <div class="info-row"><span>Status</span><span class="v">${atWar?'AT WAR':'Peace'}</span></div>
-      <div style="margin-top:8px;">
-      ${atWar?
-        `<button class="mini-btn" onclick="offerPeace('${f.id}')">Offer Peace</button>`:
-        `<button class="mini-btn danger" onclick="declareWar('${f.id}')">Declare War</button>`}
-      <button class="mini-btn" onclick="proposeTrade('${f.id}')">Propose Trade</button>
-      <button class="mini-btn" onclick="formAlliance('${f.id}')">Form Alliance</button>
-      <button class="mini-btn" onclick="shareTech('${f.id}')">Share Technology</button>
-      </div>
-    </div>`;
-  });
-  html+='</div>';
-  c.innerHTML=html;
-}
-function adjustRelation(fid,amt,reason){
-  G.relations[fid]=(G.relations[fid]||0)+amt;
-  G.relations[fid]=Math.max(-100,Math.min(100,G.relations[fid]));
-}
-function declareWar(fid){
-  G.relations['war_'+fid]=true;
-  G.relations[fid]-=30;
-  G.stats.warsFought++;
-  notify('War Declared','Your empire is now at war with '+factionName(fid)+'.','danger');
-  renderAll();
-}
-function offerPeace(fid){
-  if(rand()<0.5+((G.relations[fid]+50)/200)){
-    G.relations['war_'+fid]=false;
-    G.relations[fid]+=10;
-    notify('Peace Accepted',factionName(fid)+' has accepted your peace offer.','info');
-  } else {
-    notify('Peace Rejected',factionName(fid)+' rejected your peace offer.','warn');
-  }
-  renderAll();
-}
-function proposeTrade(fid){
-  openModal('Propose Trade to '+factionName(fid),`
-    <p style="margin-bottom:10px;">Offer 300 Steel in exchange for 200 Energy.</p>
-  `,[
-    {label:'Send Offer',action:()=>{
-      if(G.resources.steel<300){notify('Not Enough Steel','You need 300 Steel to make this offer.','warn');closeModal();return;}
-      const accept=rand()<0.55+(G.relations[fid]/200);
-      if(accept){
-        G.resources.steel-=300; G.resources.energy+=200;
-        adjustRelation(fid,4);
-        notify('Trade Accepted',factionName(fid)+' accepted the trade.','info');
-      } else {
-        notify('Trade Rejected',factionName(fid)+' rejected the trade.','warn');
-      }
-      closeModal(); renderAll();
-    }},
-    {label:'Cancel',action:closeModal}
-  ]);
-}
-function formAlliance(fid){
-  if(G.relations[fid]<30){notify('Alliance Refused',factionName(fid)+' does not trust you enough yet. Improve relations first.','warn');return;}
-  G.relations['ally_'+fid]=true;
-  adjustRelation(fid,10);
-  notify('Alliance Formed','You have formed an alliance with '+factionName(fid)+'.','info');
-  addAchievement('DIPLOMAT');
-  renderAll();
-}
-function shareTech(fid){
-  if(G.techsResearched.length===0){notify('No Technology','You have no completed research to share yet.','warn');return;}
-  adjustRelation(fid,8);
-  notify('Technology Shared',factionName(fid)+' appreciates the gesture. (+relations)','info');
-  renderAll();
-}
-
-/* ---------------- ECONOMY VIEW ---------------- */
-function renderEconomyView(c){
-  const income=computeIncome();
-  let html=`<div class="view-header">Economy</div><div class="card-grid">`;
-  Object.entries(income).forEach(([k,v])=>{
-    html+=`<div class="card"><h4 style="text-transform:capitalize;">${k}</h4><div class="desc">Net per turn</div>
-      <div style="font-size:22px;color:${v>=0?'var(--accent)':'var(--danger)'}">${v>=0?'+':''}${v.toFixed(0)}</div></div>`;
-  });
-  html+='</div>';
-  html+=`<div class="view-header" style="margin-top:24px;">Empire Status</div>
-  <div class="card"><div class="info-row"><span>Empire Level</span><span class="v">${EMPIRE_LEVELS[G.empireLevel]}</span></div>
-  <div class="info-row"><span>Territories</span><span class="v">${G.territories.filter(t=>t.owner===G.playerFaction).length}</span></div>
-  <div class="info-row"><span>Cities</span><span class="v">${G.cities.filter(ct=>ct.owner===G.playerFaction).length}</span></div>
-  <div class="info-row"><span>Population</span><span class="v">${Math.floor(G.population).toLocaleString()}</span></div>
-  <div class="info-row"><span>Technologies</span><span class="v">${G.techsResearched.length} / ${TECHS.length}</span></div>
-  </div>`;
-  c.innerHTML=html;
-}
-function computeIncome(){
-  const income={credits:0,food:0,steel:0,energy:0,science:0,rare:0};
-  const faction=FACTIONS.find(f=>f.id===G.playerFaction);
-  G.cities.filter(c=>c.owner===G.playerFaction).forEach(city=>{
-    const t=G.territories[city.territoryId];
-    const terr=TERRAIN.find(x=>x.id===t.terrain);
-    income.steel+=city.buildings.industry*8*(terr.bonus.steel||1)*techMult('steelMult');
-    income.energy+=city.buildings.energy*6*(terr.bonus.energy||1)*techMult('energyMult');
-    income.food+=(city.buildings.agriculture*10+ (terr.bonus.food||0)*5)*(faction.bonus.food||1)*techMult('foodMult');
-    income.science+=city.buildings.research*5*(faction.bonus.science||1)*techMult('scienceMult');
-    income.credits+=city.buildings.housing*4 + t.development*3;
-    income.rare+=(terr.bonus.rare||0)*2;
-  });
-  income.food-=G.population/120;
-  const upkeep=G.armies.filter(a=>a.owner===G.playerFaction).reduce((s,a)=>s+a.units.reduce((s2,u)=>s2+UNIT_TYPES[u.type].upkeep*u.count,0),0);
-  income.credits-=upkeep;
-  const allMult=1+techMult('allMult')-1;
-  Object.keys(income).forEach(k=>income[k]*=(1+techBonusSum('allMult')));
-  return income;
-}
-function techMult(key){
-  let mult=1;
-  G.techsResearched.forEach(tid=>{
-    const t=TECHS.find(x=>x.id===tid);
-    if(t.effect[key]) mult+=t.effect[key];
-  });
-  return mult;
-}
-function techBonusSum(key){
-  let sum=0;
-  G.techsResearched.forEach(tid=>{
-    const t=TECHS.find(x=>x.id===tid);
-    if(t.effect[key]) sum+=t.effect[key];
-  });
-  return sum;
-}
-
-/* ---------------- EXPLORATION VIEW ---------------- */
-function renderExplorationView(c){
-  const unexplored=G.territories.filter(t=>!t.explored);
-  let html=`<div class="view-header">Exploration</div>
-  <div class="card" style="max-width:420px;">
-    <h4>Send Expedition</h4>
-    <div class="desc">Send scouts to reveal unknown territory near your empire. Cost: 100 Credits.</div>
-    <div class="info-row"><span>Unexplored Tiles</span><span class="v">${unexplored.length}</span></div>
-    <button class="mini-btn" onclick="sendExpedition()" ${unexplored.length===0?'disabled':''}>Launch Expedition</button>
-  </div>`;
-  c.innerHTML=html;
-}
-function sendExpedition(){
-  if(G.resources.credits<100){notify('Not Enough Credits','Expeditions cost 100 Credits.','warn');return;}
-  G.resources.credits-=100;
-  const unexplored=G.territories.filter(t=>!t.explored);
-  if(unexplored.length===0)return;
-  const target=choice(unexplored);
-  revealAround(G,target,1);
-  const roll=rand();
-  let msg='The expedition reveals new territory.';
-  if(roll<0.15){ msg='Your scouts discover ancient technology fragments! +30 Rare Metals.'; G.resources.rare+=30; }
-  else if(roll<0.3){ msg='Survivors are found and welcomed into your population. +Population.'; G.population+=randInt(200,800); }
-  else if(roll<0.45){ msg='A dangerous automated defense system was found in the ruins.'; }
-  notify('Expedition Report',msg,'info');
-  renderAll();
-}
-
-/* ---------------- POLICIES VIEW ---------------- */
-const POLICIES=[
-  {id:'military_expansion',name:'Military Expansion Act',desc:'+15% military production, -10% food.',pros:'+15% Military',cons:'-10% Food'},
-  {id:'food_program',name:'Universal Food Program',desc:'+20% food, -10% credits.',pros:'+20% Food',cons:'-10% Credits'},
-  {id:'industrial_auto',name:'Industrial Automation',desc:'+20% steel, -10% population growth.',pros:'+20% Steel',cons:'-10% Pop Growth'},
-  {id:'emergency_powers',name:'Emergency Powers',desc:'+25% all production this turn cycle, -relations with all factions.',pros:'+25% Production',cons:'Relations Penalty'},
-  {id:'open_borders',name:'Open Borders',desc:'+relations with all factions, +5% population growth.',pros:'+Relations, +Pop Growth',cons:'Slightly slower defense'},
-];
-function renderPoliciesView(c){
-  let html=`<div class="view-header">Political Decisions</div><div class="card-grid">`;
-  POLICIES.forEach(p=>{
-    const active=G.activePolicies.includes(p.id);
-    html+=`<div class="card" style="${active?'border-color:var(--accent);':''}">
-      <h4>${p.name}${active?' ✓':''}</h4>
-      <div class="desc">${p.desc}</div>
-      <span class="tag" style="color:var(--accent)">${p.pros}</span><span class="tag" style="color:var(--danger)">${p.cons}</span>
-      <div style="margin-top:8px;"><button class="mini-btn" onclick="togglePolicy('${p.id}')">${active?'Repeal':'Enact'}</button></div>
-    </div>`;
-  });
-  html+='</div>';
-  c.innerHTML=html;
-}
-function togglePolicy(id){
-  if(G.activePolicies.includes(id)){
-    G.activePolicies=G.activePolicies.filter(x=>x!==id);
-    notify('Policy Repealed',POLICIES.find(p=>p.id===id).name+' has been repealed.','info');
-  } else {
-    G.activePolicies.push(id);
-    notify('Policy Enacted',POLICIES.find(p=>p.id===id).name+' is now in effect.','info');
-  }
-  renderAll();
-}
-
-/* ---------------- RECRUIT / MOVE / ATTACK MODALS ---------------- */
-function openRecruitModal(territoryId){
-  let body='<div style="display:flex;flex-direction:column;gap:8px;">';
-  Object.entries(UNIT_TYPES).forEach(([key,u])=>{
-    const locked=u.req && !G.techsResearched.includes(u.req);
-    if(locked)return;
-    body+=`<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1c2124;padding-bottom:6px;">
-      <div><b>${u.name}</b><br><span style="font-size:11px;color:var(--text-dim)">${Object.entries(u.cost).map(([k,v])=>v+' '+k).join(', ')}</span></div>
-      <button class="mini-btn" style="width:auto;margin:0;" onclick="recruitUnit(${territoryId},'${key}')">Recruit</button>
-    </div>`;
-  });
-  body+='</div>';
-  openModal('Recruit Units',body,[{label:'Close',action:closeModal}]);
-}
-function recruitUnit(territoryId,type){
-  const spec=UNIT_TYPES[type];
-  for(const [res,amt] of Object.entries(spec.cost)){
-    if(G.resources[res]<amt){notify('Insufficient Resources','Not enough '+res+' to recruit '+spec.name+'.','warn');return;}
-  }
-  Object.entries(spec.cost).forEach(([res,amt])=>G.resources[res]-=amt);
-  let army=G.armies.find(a=>a.owner===G.playerFaction && a.territoryId===territoryId);
-  if(!army){
-    army={id:G.armies.length?Math.max(...G.armies.map(a=>a.id))+1:0,owner:G.playerFaction,territoryId,name:'Task Force '+(G.armies.length+1),units:[]};
-    G.armies.push(army);
-  }
-  const existing=army.units.find(u=>u.type===type);
-  if(existing) existing.count++; else army.units.push({type,count:1});
-  notify('Unit Recruited',spec.name+' added to '+army.name+'.','info');
-  closeModal();
-  renderAll();
-}
-function openMoveModal(armyId){
-  const a=G.armies.find(x=>x.id===armyId);
-  const t=G.territories[a.territoryId];
-  const opts=neighbors(t);
-  let body='<div style="display:flex;flex-direction:column;gap:6px;">';
-  opts.forEach(n=>{
-    body+=`<button class="mini-btn" onclick="moveArmy(${armyId},${n.id})">${n.name} ${n.owner?'('+factionName(n.owner)+')':'(Unclaimed)'}</button>`;
-  });
-  body+='</div>';
-  openModal('Move Army',body,[{label:'Cancel',action:closeModal}]);
-}
-function moveArmy(armyId,targetId){
-  const a=G.armies.find(x=>x.id===armyId);
-  const target=G.territories[targetId];
-  if(target.owner && target.owner!==G.playerFaction){
-    closeModal();
-    openAttackModalDirect(armyId,targetId);
-    return;
-  }
-  a.territoryId=targetId;
-  closeModal();
-  notify('Army Moved',a.name+' has moved to '+target.name+'.','info');
-  renderAll();
-}
-function openAttackModal(armyId){
-  const a=G.armies.find(x=>x.id===armyId);
-  const t=G.territories[a.territoryId];
-  const enemies=neighbors(t).filter(n=>n.owner && n.owner!==G.playerFaction);
-  let body='<div style="display:flex;flex-direction:column;gap:6px;">';
-  enemies.forEach(n=>{
-    body+=`<button class="mini-btn danger" onclick="openAttackModalDirect(${armyId},${n.id})">${n.name} (${factionName(n.owner)})</button>`;
-  });
-  body+='</div>';
-  openModal('Choose Target',body,[{label:'Cancel',action:closeModal}]);
-}
-function openAttackModalDirect(armyId,targetId){
-  const a=G.armies.find(x=>x.id===armyId);
-  const target=G.territories[targetId];
-  const myAtk=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].attack*u.count,0)*(1+techBonusSum('attackMult'));
-  const terr=TERRAIN.find(x=>x.id===target.terrain);
-  const terrainDefBonus=terr.bonus.defense||0;
-  const enemyDef=target.defense+terrainDefBonus+target.development*8;
-  const myFaction=FACTIONS.find(f=>f.id===G.playerFaction);
-  const adjMyAtk=myAtk*(myFaction.bonus.military||1);
-  const total=adjMyAtk+enemyDef;
-  const winChance=Math.max(5,Math.min(95,Math.round((adjMyAtk/total)*100)));
-  pendingAttack={armyId,targetId};
-  const body=`
-    <div class="forecast-row"><span>Your Forces</span><span>${Math.round(adjMyAtk)} strength</span></div>
-    <div class="forecast-row"><span>Enemy Defense</span><span>${Math.round(enemyDef)} strength</span></div>
-    <div class="forecast-row"><span>Terrain</span><span>${terr.label}</span></div>
-    <div class="forecast-pct">${winChance}% Victory</div>
-  `;
-  openModal('Battle Forecast — '+target.name,body,[
-    {label:'Attack',action:()=>{executeAttack(winChance);closeModal();}},
-    {label:'Cancel',action:closeModal}
-  ]);
-}
-function executeAttack(winChance){
-  const {armyId,targetId}=pendingAttack;
-  const a=G.armies.find(x=>x.id===armyId);
-  const target=G.territories[targetId];
-  const won=rand()*100<winChance;
-  G.stats.warsFought+= target.owner? 0:0;
-  if(won){
-    const prevOwner=target.owner;
-    target.owner=G.playerFaction;
-    target.defense=Math.max(5,target.defense-15);
-    a.territoryId=targetId;
-    let city=G.cities.find(c=>c.territoryId===targetId);
-    if(city) city.owner=G.playerFaction; else G.cities.push(makeCity(target));
-    if(prevOwner){
-      adjustRelation(prevOwner,-15);
-      if(!G.relations['war_'+prevOwner]) G.relations['war_'+prevOwner]=true;
-      checkFactionElimination(prevOwner);
-    }
-    // casualties
-    a.units.forEach(u=>{u.count=Math.max(0,u.count-Math.ceil(u.count*0.1));});
-    a.units=a.units.filter(u=>u.count>0);
-    notify('Victory!','Your forces captured '+target.name+'.','info');
-    addAchievement('CONQUEROR');
-  } else {
-    a.units.forEach(u=>{u.count=Math.max(0,u.count-Math.ceil(u.count*0.35));});
-    a.units=a.units.filter(u=>u.count>0);
-    if(a.units.length===0) G.armies=G.armies.filter(x=>x.id!==armyId);
-    notify('Defeat','Your assault on '+target.name+' failed with heavy losses.','danger');
-  }
-  renderAll();
-  checkPlayerDefeat();
-}
-function disbandArmy(armyId){
-  G.armies=G.armies.filter(a=>a.id!==armyId);
-  selectedArmy=null;
-  notify('Army Disbanded','The task force has been disbanded.','info');
-  renderAll();
-}
-
-/* ---------------- FACTION ELIMINATION CHECK ---------------- */
-function checkFactionElimination(fid){
-  const stillHasTerritory=G.territories.some(t=>t.owner===fid);
-  if(!stillHasTerritory){
-    G.factions[fid].alive=false;
-    notify('Faction Eliminated',factionName(fid)+' has been eliminated from the world.','warn');
-  }
-}
-
-/* ---------------- MODAL SYSTEM ---------------- */
-function openModal(title,bodyHtml,actions){
-  document.getElementById('modal-inner').innerHTML=`
-    <h3>${title}</h3><div class="body">${bodyHtml}</div>
-    <div class="modal-actions">${actions.map((a,i)=>`<button id="modal-act-${i}">${a.label}</button>`).join('')}</div>
-  `;
-  actions.forEach((a,i)=>document.getElementById('modal-act-'+i).onclick=a.action);
-  document.getElementById('modal-overlay').classList.add('active');
-}
-function closeModal(){document.getElementById('modal-overlay').classList.remove('active');}
-
-/* ---------------- NOTIFICATIONS ---------------- */
-function notify(title,msg,type){
-  const stack=document.getElementById('notif-stack');
-  const div=document.createElement('div');
-  div.className='notif'+(type==='warn'?' warn':type==='danger'?' danger':'');
-  div.innerHTML=`<b>${title}</b><br>${msg}`;
-  stack.appendChild(div);
-  setTimeout(()=>{div.style.opacity='0';div.style.transition='opacity .4s';setTimeout(()=>div.remove(),400);},5500);
-}
-
-/* ---------------- ACHIEVEMENTS ---------------- */
-function addAchievement(id){
-  if(!G.achievements.includes(id)){
-    G.achievements.push(id);
-    notify('Achievement Unlocked',id.replace(/_/g,' '),'info');
-  }
-}
-
-/* ---------------- RANDOM EVENTS ---------------- */
-const EVENTS=[
-  {
-    title:'Power Grid Failure',
-    desc:'Several cities lose energy production this turn.',
-    choices:[
-      {label:'Spend 500 Credits',action:()=>{if(G.resources.credits>=500){G.resources.credits-=500;notify('Crisis Averted','Emergency funding restored the grid.','info');}else{notify('Not Enough Credits','The grid failure could not be fixed.','danger');G.resources.energy-=80;}}},
-      {label:'Shut Down Factories',action:()=>{G.resources.steel-=60;notify('Factories Halted','Steel production suffered this turn.','warn');}},
-      {label:'Ignore The Problem',action:()=>{G.resources.energy-=100;notify('Energy Crisis','Energy reserves dropped sharply.','danger');}},
-    ]
-  },
-  {
-    title:'Refugee Convoy',
-    desc:'Thousands of survivors arrive at your border seeking shelter.',
-    choices:[
-      {label:'Accept Them',action:()=>{G.population+=randInt(500,1200);G.resources.food-=100;notify('Refugees Accepted','Your population grows, but food reserves drop.','info');}},
-      {label:'Reject Them',action:()=>{adjustRelation(choice(Object.keys(G.relations).filter(k=>!k.startsWith('war_')&&!k.startsWith('ally_'))||['crimson']),-5);notify('Refugees Turned Away','Your reputation suffers slightly.','warn');}},
-      {label:'Recruit Them',action:()=>{G.population+=randInt(200,500);G.resources.credits+=150;notify('Refugees Recruited','Some join your workforce, boosting the economy.','info');}},
-    ]
-  },
-  {
-    title:'Ancient Signal Detected',
-    desc:'Sensors pick up a faint signal from deep within the ruins — a fragment of the Old World.',
-    choices:[
-      {label:'Investigate',action:()=>{
-        if(rand()<0.5){G.resources.rare+=40;notify('Signal Investigated','Your team recovers valuable technology fragments.','info');}
-        else{G.population-=randInt(50,150);notify('Signal Investigated','The site was more dangerous than expected. Casualties reported.','danger');}
+function openEvent(){
+  G.inCombat=false;
+  const node = G.dungeon.nodes[G.currentRoomId];
+  const events = [
+    {title:'THE SHRINE', text:'An ancient shrine hums with restless energy.', choices:[
+      {label:'Touch it', sub:'Gain a powerful buff, lose health', act:()=>{ G.player.hp=Math.max(1,G.player.hp-G.player.maxHp*0.2); G.player.dmg*=1.2; toast('Shrine','Power surges through you','rare'); }},
+      {label:'Ignore it', sub:'Nothing happens', act:()=>{}},
+      {label:'Destroy it', sub:'Gain gold, increase difficulty', act:()=>{ addGold(40); G.diffMult*=1.08; toast('Shrine Destroyed','+40 gold, dungeon grows darker','uncommon'); }}
+    ]},
+    {title:'THE GAMBLER', text:'A shadowy figure offers a wager with your gold.', choices:[
+      {label:'Bet 20 gold', sub:'50% chance to triple it', act:()=>{
+        if(G.player.gold>=20){ G.player.gold-=20; if(Math.random()<0.5){ addGold(60); toast('Gambler','You won! +60 gold','rare'); } else toast('Gambler','You lost the bet.','common'); }
+        else toast('Gambler','Not enough gold.','common');
       }},
-      {label:'Ignore It',action:()=>{notify('Signal Ignored','The mystery remains unsolved... for now.','info');}},
-    ]
-  },
-  {
-    title:'Bumper Harvest',
-    desc:'Favorable conditions have led to an unusually large harvest.',
-    choices:[
-      {label:'Celebrate',action:()=>{G.resources.food+=150;G.population+=100;notify('Bumper Harvest','Food stocks and morale rise.','info');}},
-      {label:'Store Surplus',action:()=>{G.resources.food+=250;notify('Surplus Stored','Food reserves increase significantly.','info');}},
-    ]
-  },
+      {label:'Walk away', sub:'Keep your gold', act:()=>{}}
+    ]},
+    {title:'THE CURSED ALTAR', text:'A blackened altar offers power for a price.', choices:[
+      {label:'Sacrifice 15% max HP', sub:'Gain a rare item', act:()=>{ G.player.maxHp*=0.85; G.player.hp=Math.min(G.player.hp,G.player.maxHp); grantItem(choice(rollItems(1,true,'rare'))); }},
+      {label:'Refuse', sub:'Nothing happens', act:()=>{}}
+    ]},
+    {title:'THE MYSTERIOUS MERCHANT', text:'"I have something... special. For a price."', choices:[
+      {label:'Pay 80 gold', sub:'Random legendary item', act:()=>{
+        if(G.player.gold>=80){ G.player.gold-=80; grantItem(choice(rollItems(1,true,'legendary'))); }
+        else toast('Merchant','Not enough gold.','common');
+      }},
+      {label:'Decline', sub:'Walk away', act:()=>{}}
+    ]}
+  ];
+  const ev = choice(events);
+  $('eventTitle').textContent = '❓ '+ev.title;
+  $('eventText').textContent = ev.text;
+  const box = $('eventChoices'); box.innerHTML='';
+  ev.choices.forEach(c=>{
+    const btn = document.createElement('button'); btn.className='event-choice-btn';
+    btn.innerHTML = `<b>${c.label}</b><span class="sub">${c.sub}</span>`;
+    btn.onclick = ()=>{ c.act(); hideModal('eventModal'); node.cleared=true; G.roomCleared=true; updateHUD(); };
+    box.appendChild(btn);
+  });
+  showModal('eventModal');
+}
+function openRest(){
+  G.inCombat=false;
+  const node = G.dungeon.nodes[G.currentRoomId];
+  G.player.hp = Math.min(G.player.maxHp, G.player.hp+G.player.maxHp*0.6);
+  G.player.mana = G.player.maxMana;
+  toast('Rest Site','Restored health and mana','uncommon');
+  node.cleared=true; G.roomCleared=true;
+  updateHUD();
+}
+
+/* ---------------- items ---------------- */
+function getWeightedRarity(forceMin){
+  const fortune = save.upgrades.fortune;
+  const weights = Object.assign({}, RARITY_WEIGHT_BASE);
+  RARITIES.forEach((r,idx)=>{ if(idx>=2) weights[r] *= (1+fortune*0.12); });
+  let pool = RARITIES.slice();
+  if(forceMin){ const mi = RARITIES.indexOf(forceMin); pool = RARITIES.slice(mi); }
+  let total=0; pool.forEach(r=>total+=weights[r]);
+  let roll = Math.random()*total;
+  for(const r of pool){ roll -= weights[r]; if(roll<=0) return r; }
+  return pool[0];
+}
+function rollItems(n, unique, forceMin){
+  const owned = new Set(G.player.items.map(i=>i.id));
+  const avail = ITEM_DEFS.filter(i=>!owned.has(i.id));
+  const results = [];
+  for(let i=0;i<n;i++){
+    const rarity = getWeightedRarity(forceMin);
+    let candidates = avail.filter(i=>i.rarity===rarity && !results.includes(i));
+    if(candidates.length===0) candidates = avail.filter(i=>!results.includes(i));
+    if(candidates.length===0) candidates = ITEM_DEFS;
+    results.push(choice(candidates));
+  }
+  return results;
+}
+function showItemChoice(title, items, onPick){
+  $('itemModalTitle').textContent = title;
+  const box = $('itemChoices'); box.innerHTML='';
+  items.forEach(it=>{
+    const div = document.createElement('div'); div.className='item-card '+it.rarity;
+    div.innerHTML = `<div class="iname">${it.name}</div><div class="irarity">${it.rarity}</div><div class="idesc">${it.desc}</div>`;
+    div.onclick = ()=>{ hideModal('itemModal'); onPick(it); updateHUD(); };
+    box.appendChild(div);
+  });
+  $('btnItemContinue').onclick = ()=>{ hideModal('itemModal'); onPick(null); updateHUD(); };
+  $('btnItemContinue').style.display = items.length? 'none':'inline-block';
+  showModal('itemModal');
+}
+function grantItem(def){
+  if(!def) return;
+  G.player.items.push(def);
+  G.stats.itemsCollected++;
+  save.stats.itemsFound++;
+  save.discoveredItems[def.id] = (save.discoveredItems[def.id]||0)+1;
+  persist();
+  toast('Item Acquired', def.name, def.rarity);
+  if(def.rarity==='legendary' || def.rarity==='mythic') unlockAchievement('legendary');
+  if(save.stats.itemsFound>=50) unlockAchievement('treasure_hunter');
+  applyItemPassives();
+  checkSynergies();
+}
+function applyItemPassives(){
+  // recompute derived stats from base + items each time items change
+  const p = G.player;
+  p.dmg = p.baseDmg;
+  let hpMult=1, speedMult=1;
+  p.critChance = 0.06; p.critDmg = 1.6; p.defense=0;
+  p.items.forEach(it=>{
+    switch(it.id){
+      case 'sharp_edge': p.dmg*=1.10; break;
+      case 'tough_hide': hpMult*=1.15; break;
+      case 'quick_boots': speedMult*=1.12; break;
+      case 'mana_crystal': p.maxMana+=20; break;
+      case 'glass_cannon': p.dmg*=1.5; hpMult*=0.7; break;
+      case 'giants_ring': hpMult*=1.25; speedMult*=0.92; break;
+      case 'eagle_eye': p.critChance+=0.08; break;
+      case 'executioners_mark': p.critDmg+=0.6; break;
+      case 'reckless_charm': p.attackRate*=0.85; hpMult*=0.9; break;
+      case 'iron_will': p.defense+=0.08; break;
+      case 'spiked_shield': p.defense+=0.08; break;
+      case 'kings_signet': p.dmg*=1.25; hpMult*=1.25; speedMult*=1.10; break;
+      case 'blood_oath': break; // handled dynamically
+      case 'crimson_pact': p.defense-=0.15; break;
+      default: break;
+    }
+  });
+  const ratio = p.hp/p.maxHp;
+  p.maxHp = p.maxHp * 0; // recompute fully below to avoid drift
+  const base = freshBaseHpMana();
+  p.maxHp = base.hp*hpMult;
+  p.hp = Math.min(p.maxHp, ratio*p.maxHp || p.maxHp);
+  p.speed = base.speed*speedMult;
+}
+function freshBaseHpMana(){
+  const u = save.upgrades;
+  return { hp: 100*(1+0.05*u.vitality), mana:50*(1+0.05*u.focus), speed:2.6*(1+0.02*u.swiftness) };
+}
+function checkSynergies(){
+  const owned = new Set(G.player.items.map(i=>i.id));
+  SYNERGIES.forEach(s=>{
+    if(s.tags.every(t=>owned.has(t)) && !G.player.synergiesActive.has(s.name)){
+      G.player.synergiesActive.add(s.name);
+      toast('⚡ SYNERGY ACTIVE', s.name, 'mythic');
+      unlockAchievement('build_master');
+    }
+  });
+}
+
+/* ---------------- gold / xp / leveling ---------------- */
+function addGold(n){
+  let mult = 1;
+  if(G.player.items.some(i=>i.id==='lucky_coin')) mult*=1.15;
+  const amt = Math.round(n*mult);
+  G.player.gold += amt;
+  G.stats.goldCollected += amt;
+  save.stats.totalGold += amt;
+}
+function addXp(n){
+  const p = G.player;
+  p.xp += n;
+  while(p.xp >= p.xpNext){
+    p.xp -= p.xpNext;
+    p.level++;
+    p.xpNext = Math.round(p.xpNext*1.35+10);
+    triggerLevelUp();
+  }
+  updateHUD();
+}
+const LEVEL_CHOICES_POOL = [
+  {name:'+15% Attack', desc:'Increase your attack damage.', apply:p=>{p.baseDmg*=1.15; p.dmg*=1.15;}},
+  {name:'+10% Max Health', desc:'Increase your maximum health.', apply:p=>{ const r=p.hp/p.maxHp; p.maxHp*=1.10; p.hp=p.maxHp*r+ (p.maxHp*0.1); p.hp=Math.min(p.hp,p.maxHp);}},
+  {name:'+10% Attack Speed', desc:'Attack faster.', apply:p=>{p.attackRate*=0.90;}},
+  {name:'+8% Movement Speed', desc:'Move faster around the dungeon.', apply:p=>{p.speed*=1.08;}},
+  {name:'+5% Critical Chance', desc:'Land more critical hits.', apply:p=>{p.critChance+=0.05;}},
+  {name:'+15 Maximum Mana', desc:'More resource for abilities.', apply:p=>{p.maxMana+=15; p.mana+=15;}},
 ];
-function maybeTriggerEvent(){
-  if(rand()<0.35){
-    const ev=choice(EVENTS);
-    openModal(ev.title,ev.desc,ev.choices.map(c=>({label:c.label,action:()=>{c.action();closeModal();renderAll();}})));
+function triggerLevelUp(){
+  G.paused = true;
+  const opts = [];
+  const pool = LEVEL_CHOICES_POOL.slice();
+  while(opts.length<3 && pool.length){ opts.push(pool.splice(randi(0,pool.length-1),1)[0]); }
+  const box = $('levelUpChoices'); box.innerHTML='';
+  opts.forEach(o=>{
+    const div = document.createElement('div'); div.className='choice-card';
+    div.innerHTML = `<div class="cname">${o.name}</div><div class="cdesc">${o.desc}</div>`;
+    div.onclick = ()=>{ o.apply(G.player); hideModal('levelUpModal'); G.paused=false; updateHUD(); };
+    box.appendChild(div);
+  });
+  showModal('levelUpModal');
+}
+
+/* ---------------- combat: player ---------------- */
+function tryDash(){
+  const p = G.player;
+  if(!G || G.paused || p.dashCd>0 || !p.alive) return;
+  let dx=0,dy=0;
+  if(keys['w']||joy.dy<-0.3) dy-=1;
+  if(keys['s']||joy.dy>0.3) dy+=1;
+  if(keys['a']||joy.dx<-0.3) dx-=1;
+  if(keys['d']||joy.dx>0.3) dx+=1;
+  if(dx===0&&dy===0){ dx=Math.cos(p.facing); dy=Math.sin(p.facing); }
+  const m = Math.hypot(dx,dy)||1;
+  p.dashDir = {x:dx/m, y:dy/m};
+  p.dashing = true; p.dashTimer = 0.18;
+  p.invuln = 0.22;
+  p.dashCd = p.dashCdMax;
+  if(p.items.some(i=>i.id==='moonlit_veil')) p.dashCd*=0.75;
+  spawnParticleBurst(p.x,p.y,'#7dd3fc',10);
+  if(p.items.some(i=>i.id==='shadowstep_boots')||p.items.some(i=>i.id==='nightshade_cloak')){
+    p.invisTimer = 0.6;
+  }
+}
+function tryAbility(slot){
+  const p = G.player;
+  if(!G || G.paused || !p.alive) return;
+  if(slot==='q'){
+    if(p.qCd>0 || p.mana<15) return;
+    p.mana -= 15; p.qCd = p.qCdMax * (p.items.some(i=>i.id==='arcane_battery')?0.8:1);
+    // fireball nova
+    for(let a=0;a<10;a++){
+      const ang = (a/10)*Math.PI*2;
+      G.projectiles.push({x:p.x,y:p.y,vx:Math.cos(ang)*7,vy:Math.sin(ang)*7,dmg:p.dmg*1.1,r:6,life:1.2,owner:'player',color:'#ff8040',burn:true});
+    }
+    spawnParticleBurst(p.x,p.y,'#ff6a3a',20);
+    screenShake(0.15,4);
+    tryCdReset();
+  } else if(slot==='e'){
+    if(p.eCd>0 || p.mana<20) return;
+    p.mana -= 20; p.eCd = p.eCdMax * (p.items.some(i=>i.id==='arcane_battery')?0.8:1);
+    // frost pulse: slows & damages nearby enemies
+    G.enemies.forEach(en=>{
+      if(en.alive && dist(en,p) < 160){
+        dealDamageToEnemy(en, p.dmg*0.8, false);
+        en.slow = Math.max(en.slow, 3);
+      }
+    });
+    spawnParticleBurst(p.x,p.y,'#7dc4ff',24);
+    screenShake(0.15,4);
+    tryCdReset();
+  } else if(slot==='special'){
+    playerAttack(true);
+  }
+}
+function tryCdReset(){
+  const p=G.player;
+  if(p.items.some(i=>i.id==='void_mask') && Math.random()<0.25){
+    p.qCd*=0.3; p.eCd*=0.3;
+    p.hp = Math.max(1, p.hp - p.maxHp*0.01);
+  }
+}
+function usePotion(){
+  const p = G.player;
+  if(!G || G.paused || !p.alive || p.potions<=0) return;
+  p.potions--;
+  p.hp = Math.min(p.maxHp, p.hp + p.maxHp*0.4);
+  spawnParticleBurst(p.x,p.y,'#4dd68a',14);
+  updateHUD();
+}
+let lastAttackTime = -99;
+function playerAttack(special){
+  const p = G.player;
+  if(!G || G.paused || !p.alive) return;
+  const now = performance.now()/1000;
+  if(now - lastAttackTime < p.attackRate) return;
+  lastAttackTime = now;
+  p.comboCount++;
+  const ang = Math.atan2(mouse.y-p.y, mouse.x-p.x);
+  p.facing = ang;
+  const range = 62;
+  const hitX = p.x+Math.cos(ang)*30, hitY = p.y+Math.sin(ang)*30;
+  spawnParticleBurst(hitX,hitY,'#ffd070',8);
+  let hitAny=false;
+  G.enemies.forEach(en=>{
+    if(!en.alive) return;
+    const d = dist(en,{x:p.x+Math.cos(ang)*20,y:p.y+Math.sin(ang)*20});
+    const angTo = Math.atan2(en.y-p.y,en.x-p.x);
+    let angDiff = Math.abs(angTo-ang); if(angDiff>Math.PI) angDiff=2*Math.PI-angDiff;
+    if(dist(en,p) < range+en.r && angDiff < 0.9){
+      hitAny=true;
+      let dmg = p.dmg;
+      let isCrit = Math.random() < p.critChance;
+      if(isCrit) dmg *= p.critDmg;
+      if(p.items.some(i=>i.id==='blood_oath') && p.hp < p.maxHp*0.5) dmg *= 1.35;
+      if(p.items.some(i=>i.id==='berserker_belt')) dmg *= (1+ (1-p.hp/p.maxHp)*0.2);
+      if(p.items.some(i=>i.id==='gravity_core')){
+        const kx=(p.x-en.x), ky=(p.y-en.y); const km=Math.hypot(kx,ky)||1;
+        en.x += (kx/km)*4; en.y += (ky/km)*4;
+      }
+      dealDamageToEnemy(en, dmg, isCrit);
+      // on-hit effects
+      if(p.items.some(i=>i.id==='flame_heart') && p.comboCount%5===0){ en.burn = 3; }
+      if(p.items.some(i=>i.id==='ember_core') && Math.random()<0.15){ en.burn = 2; }
+      if(p.items.some(i=>i.id==='venom_fang')){ en.poison = Math.min((en.poison||0)+1, p.items.some(i=>i.id==='plague_mask')?5:1); }
+      if(p.items.some(i=>i.id==='frost_crown')){ en.slow = Math.max(en.slow, 1.4); }
+      if(isCrit && p.items.some(i=>i.id==='thunder_ring')){
+        G.enemies.forEach(other=>{ if(other!==en && other.alive && dist(other,en)<130){ dealDamageToEnemy(other, dmg*0.4, false); } });
+      }
+      if(p.items.some(i=>i.id==='vampiric_fang')){ p.hp = Math.min(p.maxHp, p.hp + dmg*0.06); }
+      if(p.items.some(i=>i.id==='crimson_pact')){ p.hp = Math.min(p.maxHp, p.hp + dmg*0.08); }
+      if(p.items.some(i=>i.id==='soul_siphon') && en.hp<=0){ p.mana = Math.min(p.maxMana, p.mana+p.maxMana*0.08); }
+      if(p.invisTimer>0 && p.items.some(i=>i.id==='nightshade_cloak')){ dealDamageToEnemy(en, dmg*0.3, false); }
+    }
+  });
+  screenShake(0.08, hitAny?4:1.5);
+}
+
+function dealDamageToEnemy(en, dmg, isCrit){
+  if(!en.alive) return;
+  en.hp -= dmg;
+  en.hitFlash = 0.15;
+  G.stats.damageDealt += dmg;
+  save.stats.totalDamage += dmg;
+  spawnDamageNumber(en.x, en.y-en.r-10, Math.round(dmg), isCrit);
+  if(en.hp<=0){
+    killEnemy(en);
+  }
+}
+function killEnemy(en){
+  en.alive=false; en.hp=0;
+  spawnParticleBurst(en.x,en.y,en.color,16);
+  if(en===G.bossActive){
+    handleBossDeath(en);
+    return;
+  }
+  addXp(en.xp);
+  addGold(randi(en.gold[0],en.gold[1]));
+  G.stats.enemiesDefeated++;
+  save.stats.enemiesDefeated++;
+  if(save.stats.enemiesDefeated===1) unlockAchievement('first_blood');
+  if(G.player.items.some(i=>i.id==='ashen_crown')){
+    G.enemies.forEach(o=>{ if(o.alive && o!==en && dist(o,en)<110){ dealDamageToEnemy(o, G.player.dmg*0.5,false); o.burn=2; } });
+  }
+  checkRoomClear();
+}
+function checkRoomClear(){
+  if(!G.inCombat) return;
+  const anyAlive = G.enemies.some(e=>e.alive);
+  if(!anyAlive){
+    G.inCombat=false;
+    const node = G.dungeon.nodes[G.currentRoomId];
+    node.cleared = true;
+    if(!G.tookDamageThisRoom) unlockAchievement('untouchable');
+    const isElite = node.type==='elite';
+    setTimeout(()=>{
+      if(isElite){
+        showItemChoice('💀 ELITE DEFEATED', rollItems(1,true), (picked)=>{ grantItem(picked); G.roomCleared=true; });
+      } else {
+        if(Math.random()<0.55){
+          showItemChoice('⚔ ROOM CLEARED', rollItems(1,true), (picked)=>{ grantItem(picked); G.roomCleared=true; });
+        } else {
+          G.roomCleared = true;
+        }
+      }
+    }, 300);
   }
 }
 
-/* ---------------- AI TURN ---------------- */
-function runAITurn(fid){
-  const state=G.factions[fid];
-  if(!state.alive)return;
-  const myTerritories=G.territories.filter(t=>t.owner===fid);
-  if(myTerritories.length===0)return;
-  const personality=state.personality;
-  // expand: try to claim adjacent unowned territory
-  if(rand()<0.5){
-    const candidates=[];
-    myTerritories.forEach(t=>neighbors(t).forEach(n=>{if(!n.owner && !n.independent) candidates.push(n);}));
-    if(candidates.length){
-      const target=choice(candidates);
-      target.owner=fid; target.explored=true;
-      let city=G.cities.find(c=>c.territoryId===target.id);
-      if(!city) G.cities.push(makeCity(target)); else city.owner=fid;
+/* ---------------- boss logic ---------------- */
+function handleBossDeath(boss){
+  G.stats.bossesDefeated++;
+  save.stats.bossesDefeated++;
+  unlockAchievement('boss_slayer');
+  $('bossHud').classList.remove('active');
+  screenShake(0.6,14);
+  grantItem(ITEM_BY_ID[boss.reward]);
+  addGold(80+G.floorIdx*30);
+  const node = G.dungeon.nodes[G.currentRoomId];
+  node.cleared = true;
+  G.inCombat = false;
+  if(G.floorIdx >= FLOORS.length-1){
+    unlockAchievement('kingslayer');
+    setTimeout(()=>endRun(true), 900);
+  } else {
+    setTimeout(()=>{ G.roomCleared = true; advanceFloorPrompt(); }, 900);
+  }
+}
+function advanceFloorPrompt(){
+  G.floorIdx++;
+  if(G.floorIdx >= FLOORS.length){ endRun(true); return; }
+  if(G.floorIdx===2) unlockAchievement('the_descent');
+  generateDungeon();
+  enterRoom(G.dungeon.startId);
+  $('floorLabel').textContent = 'Floor '+(G.floorIdx+1)+' · '+FLOORS[G.floorIdx].name;
+  toast('New Floor', FLOORS[G.floorIdx].name, 'epic');
+}
+
+function updateBoss(dt){
+  const b = G.bossActive; if(!b || !b.alive) return;
+  const p = G.player;
+  b.hitFlash = Math.max(0,b.hitFlash-dt);
+  b.phaseTimer += dt;
+  const hpPct = b.hp/b.maxHp;
+  let newPhase = b.phase;
+  if(hpPct < 0.33) newPhase=3; else if(hpPct<0.66) newPhase=2; else newPhase=1;
+  if(newPhase!==b.phase){ b.phase=newPhase; $('bossPhase').textContent='PHASE '+b.phase; toast(b.name,'Enters phase '+b.phase,'legendary'); screenShake(0.3,8); }
+
+  // movement: drift toward player slowly, keep within arena
+  const ang = Math.atan2(p.y-b.x*0+p.y-b.y, p.x-b.x);
+  const moveAng = Math.atan2(p.y-b.y,p.x-b.x);
+  const targetDist = 130;
+  if(dist(b,p) > targetDist){ b.x += Math.cos(moveAng)*b.speed*0.6; b.y += Math.sin(moveAng)*b.speed*0.6; }
+  b.x = clamp(b.x, 60, CW-60); b.y = clamp(b.y, 60, CH-60);
+
+  b.atkCd -= dt;
+  if(b.telegraph>0){
+    b.telegraph -= dt;
+    if(b.telegraph<=0) executeBossAttack(b);
+  } else if(b.atkCd<=0){
+    b.telegraph = 0.55 - b.phase*0.08;
+    b.atkCd = Math.max(0.9, 2.4 - b.phase*0.4);
+  }
+  if(b.phase>=2){
+    b.summonCd -= dt;
+    if(b.summonCd<=0){
+      b.summonCd = 7 - b.phase;
+      summonMinions(b);
     }
   }
-  // develop a random owned city
-  const cities=G.cities.filter(c=>c.owner===fid);
-  if(cities.length){
-    const c=choice(cities);
-    const bkey=choice(Object.keys(BUILDINGS));
-    c.buildings[bkey]+= rand()<0.7?1:0;
+  if(b.phase>=3 && !b.arenaHazard){
+    b.arenaHazard = true;
+    toast(b.name,'The arena begins to collapse!','mythic');
   }
-  // military behavior
-  if(personality==='aggressive' && rand()<0.4){
-    const enemyBorders=[];
-    myTerritories.forEach(t=>neighbors(t).forEach(n=>{if(n.owner && n.owner!==fid) enemyBorders.push({from:t,to:n});}));
-    if(enemyBorders.length){
-      const pick=choice(enemyBorders);
-      const atkPower=randInt(20,80);
-      const defPower=pick.to.defense+pick.to.development*8;
-      if(atkPower>defPower*0.8 && rand()<0.5){
-        const prevOwner=pick.to.owner;
-        pick.to.owner=fid;
-        if(prevOwner===G.playerFaction){
-          notify('Territory Lost',pick.to.name+' has been captured by '+factionName(fid)+'!','danger');
-        }
-        if(prevOwner) checkFactionElimination(prevOwner);
-        G.relations[fid]=(G.relations[fid]||0)-4;
+  if(b.arenaHazard){
+    b.hazardTimer = (b.hazardTimer||0)-dt;
+    if(b.hazardTimer<=0){
+      b.hazardTimer = 1.4;
+      spawnHazard();
+    }
+  }
+  updateBossBar();
+}
+function summonMinions(b){
+  const n = 2;
+  for(let i=0;i<n;i++){
+    const t = choice(ENEMY_TYPES);
+    const e = spawnEnemy(t,false);
+    e.hp*=0.6; e.maxHp=e.hp;
+    G.enemies.push(e);
+  }
+  spawnParticleBurst(b.x,b.y,'#a020f0',20);
+  toast(b.name,'Summons minions!','rare');
+}
+function executeBossAttack(b){
+  const p = G.player;
+  const pattern = randi(0,2);
+  if(pattern===0){
+    // radial burst
+    for(let a=0;a<12;a++){
+      const ang=(a/12)*Math.PI*2;
+      G.projectiles.push({x:b.x,y:b.y,vx:Math.cos(ang)*4.5,vy:Math.sin(ang)*4.5,dmg:b.dmg*0.7,r:8,life:2.2,owner:'boss',color:b.color});
+    }
+  } else if(pattern===1){
+    // aimed volley
+    const ang = Math.atan2(p.y-b.y,p.x-b.x);
+    for(let s=-2;s<=2;s++){
+      const a2 = ang+s*0.18;
+      G.projectiles.push({x:b.x,y:b.y,vx:Math.cos(a2)*6,vy:Math.sin(a2)*6,dmg:b.dmg*0.8,r:9,life:2,owner:'boss',color:b.color});
+    }
+  } else {
+    // melee slam if close
+    if(dist(b,p) < 140){
+      damagePlayer(b.dmg*1.3);
+      screenShake(0.3,10);
+      spawnParticleBurst(p.x,p.y,'#ff4040',14);
+    } else {
+      const ang = Math.atan2(p.y-b.y,p.x-b.x);
+      G.projectiles.push({x:b.x,y:b.y,vx:Math.cos(ang)*7,vy:Math.sin(ang)*7,dmg:b.dmg,r:10,life:1.6,owner:'boss',color:b.color});
+    }
+  }
+  spawnParticleBurst(b.x,b.y,'#ff8040',10);
+}
+function spawnHazard(){
+  const x = rand(80,CW-80), y = rand(80,CH-80);
+  G.particles.push({x,y,vx:0,vy:0,r:26,life:1.2,maxLife:1.2,color:'#ff2020',hazard:true});
+}
+function updateBossBar(){
+  const b = G.bossActive; if(!b) return;
+  $('bossBarFill').style.width = clamp(b.hp/b.maxHp*100,0,100)+'%';
+}
+
+/* ---------------- enemy AI ---------------- */
+function updateEnemies(dt){
+  const p = G.player;
+  G.enemies.forEach(en=>{
+    if(!en.alive) return;
+    if(en===G.bossActive){ updateBoss(dt); return; }
+    en.hitFlash = Math.max(0,en.hitFlash-dt);
+    en.slow = Math.max(0, en.slow-dt);
+    const slowMult = en.slow>0?0.4:1;
+    if(en.burn>0){ en.burn-=dt; if(Math.random()<dt*2){ dealDamageToEnemy(en, en.maxHp*0.02*(G.player.items.some(i=>i.id==='inferno_ring')?1.4:1), false); } }
+    if(en.poison>0){ if(Math.random()<dt*3){ dealDamageToEnemy(en, en.maxHp*0.015*(en.poisonStacks||1), false); } }
+    const d = dist(en,p);
+    const angToP = Math.atan2(p.y-en.y,p.x-en.x);
+    if(en.ranged){
+      if(d>240){ en.x+=Math.cos(angToP)*en.speed*slowMult; en.y+=Math.sin(angToP)*en.speed*slowMult; }
+      else if(d<140){ en.x-=Math.cos(angToP)*en.speed*slowMult*0.6; en.y-=Math.sin(angToP)*en.speed*slowMult*0.6; }
+      en.atkCd -= dt;
+      if(en.atkCd<=0 && d<400){
+        en.atkCd = 1.8;
+        G.projectiles.push({x:en.x,y:en.y,vx:Math.cos(angToP)*4.5,vy:Math.sin(angToP)*4.5,dmg:en.dmg,r:6,life:2.2,owner:'enemy',color:en.color});
+      }
+    } else {
+      if(d>44){ en.x+=Math.cos(angToP)*en.speed*slowMult; en.y+=Math.sin(angToP)*en.speed*slowMult; }
+      else {
+        en.atkCd -= dt;
+        if(en.atkCd<=0){ en.atkCd = 1.0; damagePlayer(en.dmg); }
       }
     }
-  }
-  if(personality==='diplomatic' && G.relations[fid]!==undefined && rand()<0.3){
-    G.relations[fid]=Math.min(100,G.relations[fid]+3);
-  }
-  if(personality==='technological' && rand()<0.2){
-    // flavor only
-  }
+    en.x = clamp(en.x, 30, CW-30); en.y = clamp(en.y, 30, CH-30);
+  });
 }
 
-/* ---------------- END TURN / ECONOMY TICK ---------------- */
-function endTurn(){
-  const income=computeIncome();
-  Object.keys(income).forEach(k=>{
-    G.resources[k]=Math.max(0,G.resources[k]+income[k]);
-  });
-  G.population=Math.max(0,G.population+income.food>0? G.population*(1+0.01*techMult('growthMult')/10):G.population*0.98);
-  // research
-  if(G.researching){
-    G.researchProgress+=income.science>0?Math.max(income.science,5):5;
-    const t=TECHS.find(x=>x.id===G.researching);
-    if(G.researchProgress>=t.cost){
-      G.techsResearched.push(t.id);
-      G.stats.techCount++;
-      notify('Technology Researched',t.name+' has been completed!','info');
-      addAchievement('TECHNOCRAT');
-      G.researching=null; G.researchProgress=0;
+function damagePlayer(dmg){
+  const p = G.player;
+  if(p.invuln>0 || !p.alive) return;
+  let reduced = dmg*(1-clamp(p.defense,0,0.6));
+  if(p.items.some(i=>i.id==='crimson_pact')) reduced*=1.15;
+  p.hp -= reduced;
+  G.tookDamageThisRoom = true;
+  p.invuln = 0.5;
+  screenShake(0.15,5);
+  spawnDamageNumber(p.x,p.y-30,Math.round(reduced),false,true);
+  if(p.items.some(i=>i.id==='blood_mirror') || p.items.some(i=>i.id==='spiked_shield')){
+    G.enemies.forEach(en=>{ if(en.alive && dist(en,p)<70){ dealDamageToEnemy(en, reduced*0.2, false); } });
+  }
+  if(p.hp<=0){
+    if(!p.phoenixUsed && p.items.some(i=>i.id==='phoenix_feather')){
+      p.phoenixUsed = true;
+      p.hp = p.maxHp*0.4;
+      toast('Phoenix Feather','You cheat death!','legendary');
+      unlockAchievement('death_defied');
+      spawnParticleBurst(p.x,p.y,'#ff8040',30);
+    } else {
+      p.hp = 0; p.alive=false;
+      setTimeout(()=>endRun(false), 700);
     }
   }
-  // AI factions act
-  FACTIONS.filter(f=>f.id!==G.playerFaction).forEach(f=>runAITurn(f.id));
-  // random event
-  maybeTriggerEvent();
-  // empire level check
-  updateEmpireLevel();
-  // achievements check
-  checkAchievements();
-  G.year++;
-  saveGame();
-  renderAll();
-  checkPlayerDefeat();
-  checkPlayerVictory();
+  updateHUD();
 }
-function updateEmpireLevel(){
-  const myTerr=G.territories.filter(t=>t.owner===G.playerFaction).length;
-  let lvl=0;
-  if(myTerr>=3) lvl=1;
-  if(myTerr>=8) lvl=2;
-  if(myTerr>=16) lvl=3;
-  if(myTerr>=28) lvl=4;
-  if(myTerr>=45) lvl=5;
-  if(lvl>G.empireLevel){
-    G.empireLevel=lvl;
-    notify('Empire Grows','Your empire has reached: '+EMPIRE_LEVELS[lvl],'info');
+
+/* ---------------- projectiles / particles ---------------- */
+function updateProjectiles(dt){
+  const p = G.player;
+  G.projectiles.forEach(pr=>{
+    pr.x += pr.vx*60*dt; pr.y += pr.vy*60*dt; pr.life -= dt;
+    if(pr.owner==='player'){
+      G.enemies.forEach(en=>{
+        if(en.alive && dist(en,pr) < en.r+pr.r){
+          dealDamageToEnemy(en, pr.dmg, false);
+          if(pr.burn) en.burn = 2;
+          pr.life = 0;
+        }
+      });
+    } else if(pr.owner==='enemy' || pr.owner==='boss'){
+      if(p.invuln<=0 && dist(p,pr) < p.r+pr.r){
+        damagePlayer(pr.dmg);
+        pr.life = 0;
+      }
+    }
+  });
+  G.projectiles = G.projectiles.filter(pr=>pr.life>0 && pr.x>-20&&pr.x<CW+20&&pr.y>-20&&pr.y<CH+20);
+}
+function spawnParticleBurst(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const ang = rand(0,Math.PI*2), sp = rand(1,5);
+    G.particles.push({x,y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,r:rand(2,5),life:rand(0.3,0.7),maxLife:0.7,color});
   }
 }
-function checkAchievements(){
-  if(G.cities.filter(c=>c.owner===G.playerFaction).length>=1) addAchievement('FIRST_SETTLEMENT');
-  if(G.territories.filter(t=>t.owner===G.playerFaction).length>=10) addAchievement('CONQUEROR');
-  if(Object.values(G.factions).filter(f=>G.relations['ally_'+f.id]).length>=3) addAchievement('DIPLOMAT');
-  if(G.year>=100) addAchievement('LAST_EMPIRE');
+function updateParticles(dt){
+  const p=G.player;
+  G.particles.forEach(pt=>{
+    if(pt.hazard){
+      pt.life-=dt;
+      if(pt.life < pt.maxLife-0.3 && dist(pt,p) < pt.r && p.invuln<=0){ damagePlayer(8*G.diffMult); }
+      return;
+    }
+    pt.x+=pt.vx; pt.y+=pt.vy; pt.vx*=0.9; pt.vy*=0.9; pt.life-=dt;
+  });
+  G.particles = G.particles.filter(pt=>pt.life>0);
+}
+function spawnDamageNumber(x,y,val,crit,isPlayer){
+  G.damageNumbers.push({x,y,val,crit,isPlayer,life:0.8,vy:-1.2});
+}
+function updateDamageNumbers(dt){
+  G.damageNumbers.forEach(d=>{ d.y+=d.vy; d.vy+=0.03; d.life-=dt; });
+  G.damageNumbers = G.damageNumbers.filter(d=>d.life>0);
+}
+function screenShake(time,mag){ G.shakeTime = Math.max(G.shakeTime,time); G.shakeMag = Math.max(G.shakeMag,mag); }
+
+/* ---------------- player movement update ---------------- */
+function updatePlayer(dt){
+  const p = G.player;
+  if(!p.alive) return;
+  p.invuln = Math.max(0, p.invuln-dt);
+  p.invisTimer = Math.max(0, p.invisTimer-dt);
+  p.dashCd = Math.max(0, p.dashCd-dt);
+  p.qCd = Math.max(0, p.qCd-dt);
+  p.eCd = Math.max(0, p.eCd-dt);
+
+  if(p.dashing){
+    p.x += p.dashDir.x * 14;
+    p.y += p.dashDir.y * 14;
+    p.dashTimer -= dt;
+    if(p.dashTimer<=0) p.dashing=false;
+  } else {
+    let dx=0,dy=0;
+    if(keys['w']) dy-=1; if(keys['s']) dy+=1;
+    if(keys['a']) dx-=1; if(keys['d']) dx+=1;
+    if(joy.active){ dx+=joy.dx; dy+=joy.dy; }
+    const m = Math.hypot(dx,dy);
+    if(m>0){ p.x += (dx/m)*p.speed*(60*dt/1.0)*0.5*2; p.y += (dy/m)*p.speed*(60*dt/1.0)*0.5*2; }
+  }
+  p.x = clamp(p.x, 20, CW-20); p.y = clamp(p.y, 20, CH-20);
+  p.facing = Math.atan2(mouse.y-p.y, mouse.x-p.x);
+
+  if(mouse.down && !isTouch) playerAttack();
+
+  // mana regen
+  p.mana = Math.min(p.maxMana, p.mana + 4*dt);
 }
 
-/* ---------------- WIN / LOSE ---------------- */
-function checkPlayerDefeat(){
-  const capital=G.territories[G.capitalId];
-  if(capital.owner!==G.playerFaction || G.population<=0){
-    showEndScreen(false);
+/* ---------------- room transition (touch edges to move to next room) ---------------- */
+let transitionCooldown = 0;
+function checkRoomTransition(dt){
+  transitionCooldown -= dt;
+  if(!G.roomCleared || G.inCombat) return;
+  const node = G.dungeon.nodes[G.currentRoomId];
+  const p = G.player;
+  if(p.y < 45 && transitionCooldown<=0){
+    transitionCooldown = 1;
+    if(node.type==='boss'){ return; } // boss room has no further exit (auto-advances)
+    goToNextRoom(node);
   }
 }
-function checkPlayerVictory(){
-  const totalTiles=G.territories.length;
-  const myTiles=G.territories.filter(t=>t.owner===G.playerFaction).length;
-  if(myTiles/totalTiles>=0.7){ showEndScreen(true,'MILITARY VICTORY'); return; }
-  if(G.techsResearched.length>=TECHS.length){ showEndScreen(true,'TECHNOLOGICAL VICTORY'); return; }
-  if(G.resources.credits>=20000){ showEndScreen(true,'ECONOMIC VICTORY'); return; }
-  const allies=Object.keys(G.factions).filter(f=>f!==G.playerFaction && G.relations['ally_'+f]).length;
-  const aliveOthers=Object.values(G.factions).filter(f=>f.id!==G.playerFaction&&f.alive).length;
-  if(allies>0 && allies>=aliveOthers){ showEndScreen(true,'DIPLOMATIC VICTORY'); return; }
-  if(G.year>=150){ showEndScreen(true,'SURVIVAL VICTORY'); return; }
+function goToNextRoom(node){
+  const conns = node.connections.filter(cid=>true);
+  if(conns.length===0) return;
+  if(conns.length===1){ enterRoom(conns[0]); return; }
+  // show path choice
+  const box = $('pathChoices'); box.innerHTML='';
+  conns.forEach(cid=>{
+    const n2 = G.dungeon.nodes[cid];
+    const div = document.createElement('div'); div.className='choice-card';
+    div.innerHTML = `<div class="cname">${ROOM_ICON[n2.type]} ${capitalize(n2.type)}</div><div class="cdesc">${roomHint(n2.type)}</div>`;
+    div.onclick = ()=>{ hideModal('pathModal'); enterRoom(cid); };
+    box.appendChild(div);
+  });
+  showModal('pathModal');
 }
-function showEndScreen(win,label){
-  const screen=document.getElementById('endscreen');
-  screen.classList.toggle('win',win);
-  document.getElementById('end-title').textContent=win?(label||'VICTORY'):'EMPIRE FALLEN';
-  document.getElementById('end-stats').innerHTML=`
-    <div class="info-row"><span>Territories Controlled</span><span class="v">${G.territories.filter(t=>t.owner===G.playerFaction).length}</span></div>
-    <div class="info-row"><span>Population</span><span class="v">${Math.floor(G.population).toLocaleString()}</span></div>
-    <div class="info-row"><span>Wars Fought</span><span class="v">${G.stats.warsFought}</span></div>
-    <div class="info-row"><span>Technologies Discovered</span><span class="v">${G.techsResearched.length}</span></div>
-    <div class="info-row"><span>Years Survived</span><span class="v">${G.year}</span></div>
-  `;
-  localStorage.removeItem('empire_afterfall_save');
-  showScreen('endscreen');
+function roomHint(type){
+  return {combat:'Standard enemy encounter.',elite:'Dangerous foes, great rewards.',treasure:'Free item, no combat.',
+    shop:'Spend your gold.',event:'A mysterious choice.',rest:'Heal and recover.',boss:'The floor guardian awaits.'}[type]||'';
 }
 
-/* ---------------- SAVE / LOAD ---------------- */
-function saveGame(){
-  try{ localStorage.setItem('empire_afterfall_save',JSON.stringify(G)); }catch(e){console.warn('save failed',e);}
+/* ---------------- main loop ---------------- */
+let lastTime = performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05,(now-lastTime)/1000);
+  lastTime = now;
+  if(G && !G.paused && !G.gameOver){
+    updatePlayer(dt);
+    updateEnemies(dt);
+    updateProjectiles(dt);
+    updateParticles(dt);
+    updateDamageNumbers(dt);
+    checkRoomTransition(dt);
+    G.shakeTime = Math.max(0,G.shakeTime-dt);
+    updateHUDLight();
+  }
+  render();
+}
+requestAnimationFrame(loop);
+
+/* ---------------- rendering ---------------- */
+function render(){
+  ctx.save();
+  ctx.clearRect(0,0,CW,CH);
+  let shakeX=0, shakeY=0;
+  if(G && G.shakeTime>0){ shakeX = rand(-G.shakeMag,G.shakeMag); shakeY = rand(-G.shakeMag,G.shakeMag); }
+  ctx.translate(shakeX,shakeY);
+
+  // background
+  const floorColor = G ? FLOORS[G.floorIdx].bg : '#14141f';
+  ctx.fillStyle = floorColor;
+  ctx.fillRect(-20,-20,CW+40,CH+40);
+  drawFog();
+  drawFloorPattern();
+
+  if(!G){ ctx.restore(); return; }
+
+  // exit glow marker if room cleared and not boss
+  const node = G.dungeon.nodes[G.currentRoomId];
+  if(G.roomCleared && !G.inCombat && node.type!=='boss'){
+    ctx.save();
+    ctx.strokeStyle='rgba(232,196,106,0.5)';
+    ctx.lineWidth=3;
+    ctx.setLineDash([8,6]);
+    ctx.strokeRect(20,10,CW-40,30);
+    ctx.restore();
+    ctx.fillStyle='rgba(232,196,106,0.7)';
+    ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('WALK NORTH TO CONTINUE', CW/2, 24);
+  }
+
+  // particles (behind entities)
+  G.particles.forEach(pt=>{
+    if(pt.hazard){
+      const a = clamp(pt.life/pt.maxLife,0,1);
+      ctx.fillStyle = `rgba(255,40,40,${0.15+0.25*a})`;
+      ctx.beginPath(); ctx.arc(pt.x,pt.y,pt.r,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='rgba(255,80,80,0.6)'; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+      return;
+    }
+    ctx.globalAlpha = clamp(pt.life/pt.maxLife,0,1);
+    ctx.fillStyle = pt.color;
+    ctx.beginPath(); ctx.arc(pt.x,pt.y,pt.r,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  });
+
+  // enemies
+  G.enemies.forEach(en=>{
+    if(!en.alive) return;
+    drawEnemy(en);
+  });
+
+  // projectiles
+  G.projectiles.forEach(pr=>{
+    ctx.fillStyle = pr.color;
+    ctx.shadowColor = pr.color; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.arc(pr.x,pr.y,pr.r,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+  });
+
+  // player
+  drawPlayer();
+
+  // damage numbers
+  G.damageNumbers.forEach(d=>{
+    ctx.globalAlpha = clamp(d.life/0.8,0,1);
+    ctx.font = d.crit? 'bold 20px sans-serif':'bold 14px sans-serif';
+    ctx.fillStyle = d.isPlayer? '#ff5c5c' : (d.crit? '#ffd050':'#fff');
+    ctx.textAlign='center';
+    ctx.fillText((d.isPlayer?'-':'')+d.val, d.x, d.y);
+    ctx.globalAlpha=1;
+  });
+
+  ctx.restore();
+}
+function drawFog(){
+  const g = ctx.createRadialGradient(CW/2,CH/2,80,CW/2,CH/2,CW*0.7);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.55)');
+  ctx.fillStyle=g; ctx.fillRect(-20,-20,CW+40,CH+40);
+}
+function drawFloorPattern(){
+  ctx.strokeStyle='rgba(255,255,255,0.03)';
+  for(let x=0;x<CW;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CH); ctx.stroke(); }
+  for(let y=0;y<CH;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CW,y); ctx.stroke(); }
+}
+function drawPlayer(){
+  const p = G.player;
+  ctx.save();
+  if(p.invisTimer>0) ctx.globalAlpha=0.35;
+  if(p.invuln>0 && Math.floor(performance.now()/60)%2===0) ctx.globalAlpha*=0.5;
+  // glow
+  ctx.shadowColor = '#7dd3fc'; ctx.shadowBlur = 14;
+  ctx.fillStyle = p.hp<p.maxHp*0.3 ? '#ff7d7d' : '#d8e6ff';
+  ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  // facing indicator
+  ctx.strokeStyle='#7dd3fc'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(p.x,p.y);
+  ctx.lineTo(p.x+Math.cos(p.facing)*24, p.y+Math.sin(p.facing)*24);
+  ctx.stroke();
+  ctx.restore();
+}
+function drawEnemy(en){
+  ctx.save();
+  const isBoss = en===G.bossActive;
+  if(en.hitFlash>0){ ctx.shadowColor='#fff'; ctx.shadowBlur=16; }
+  ctx.fillStyle = en.hitFlash>0 ? '#ffffff' : en.color;
+  ctx.beginPath(); ctx.arc(en.x,en.y,en.r,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  if(en.elite){ ctx.strokeStyle='#e8a94d'; ctx.lineWidth=3; ctx.stroke(); }
+  if(isBoss){ ctx.strokeStyle='#ff4040'; ctx.lineWidth=4; ctx.stroke();
+    if(en.telegraph>0){ ctx.strokeStyle='rgba(255,60,60,0.6)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(en.x,en.y,en.r+10+Math.sin(performance.now()/60)*4,0,Math.PI*2); ctx.stroke(); }
+  }
+  if(en.burn>0){ ctx.strokeStyle='rgba(255,120,40,0.7)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(en.x,en.y,en.r+4,0,Math.PI*2); ctx.stroke(); }
+  if(en.poison>0){ ctx.strokeStyle='rgba(120,220,80,0.7)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(en.x,en.y,en.r+7,0,Math.PI*2); ctx.stroke(); }
+  if(en.slow>0){ ctx.strokeStyle='rgba(120,200,255,0.7)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(en.x,en.y,en.r+2,0,Math.PI*2); ctx.stroke(); }
+  // hp bar
+  const w = en.r*2;
+  ctx.fillStyle='#000'; ctx.fillRect(en.x-w/2, en.y-en.r-12, w, 5);
+  ctx.fillStyle= isBoss?'#a11818':'#4dd68a';
+  ctx.fillRect(en.x-w/2, en.y-en.r-12, w*clamp(en.hp/en.maxHp,0,1), 5);
+  if(!isBoss){ ctx.fillStyle='#fff'; ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.fillText(en.name, en.x, en.y-en.r-16); }
+  ctx.restore();
 }
 
-/* ---------------- MASTER RENDER ---------------- */
-function renderAll(){
-  if(!G)return;
-  document.getElementById('r-credits').textContent=Math.floor(G.resources.credits).toLocaleString();
-  document.getElementById('r-food').textContent=Math.floor(G.resources.food).toLocaleString();
-  document.getElementById('r-steel').textContent=Math.floor(G.resources.steel).toLocaleString();
-  document.getElementById('r-energy').textContent=Math.floor(G.resources.energy).toLocaleString();
-  document.getElementById('r-science').textContent=Math.floor(G.resources.science).toLocaleString();
-  document.getElementById('r-rare').textContent=Math.floor(G.resources.rare).toLocaleString();
-  document.getElementById('r-pop').textContent=Math.floor(G.population).toLocaleString();
-  document.getElementById('turn-display').textContent='YEAR '+G.year;
-  renderMap();
-  renderRightPanel();
-  if(currentView!=='map') renderView(currentView);
+/* ---------------- HUD updates ---------------- */
+function updateHUD(){
+  if(!G) return;
+  const p = G.player;
+  $('lvlNum').textContent = p.level;
+  $('hpBar').style.width = clamp(p.hp/p.maxHp*100,0,100)+'%';
+  $('hpLabel').textContent = Math.max(0,Math.round(p.hp))+'/'+Math.round(p.maxHp);
+  $('manaBar').style.width = clamp(p.mana/p.maxMana*100,0,100)+'%';
+  $('manaLabel').textContent = Math.round(p.mana)+'/'+Math.round(p.maxMana);
+  $('xpBar').style.width = clamp(p.xp/p.xpNext*100,0,100)+'%';
+  $('goldNum').textContent = p.gold;
+  $('potionCount').textContent = p.potions;
+  $('floorLabel').textContent = 'Floor '+(G.floorIdx+1)+' · '+FLOORS[G.floorIdx].name;
 }
+function updateHUDLight(){
+  // called every frame for lightweight bars
+  const p = G.player;
+  $('hpBar').style.width = clamp(p.hp/p.maxHp*100,0,100)+'%';
+  $('hpLabel').textContent = Math.max(0,Math.round(p.hp))+'/'+Math.round(p.maxHp);
+  $('manaBar').style.width = clamp(p.mana/p.maxMana*100,0,100)+'%';
+  $('manaLabel').textContent = Math.round(p.mana)+'/'+Math.round(p.maxMana);
+  $('goldNum').textContent = p.gold;
+  $('cdQ').style.display = p.qCd>0.05?'flex':'none'; $('cdQ').textContent = p.qCd.toFixed(1);
+  $('cdE').style.display = p.eCd>0.05?'flex':'none'; $('cdE').textContent = p.eCd.toFixed(1);
+  $('cdDash').style.display = p.dashCd>0.05?'flex':'none'; $('cdDash').textContent = p.dashCd.toFixed(1);
+  $('potionCount').textContent = p.potions;
+}
+function toast(title, msg, rarity){
+  const el = document.createElement('div');
+  el.className = 'toast '+(rarity||'common');
+  el.innerHTML = `<b>${title}</b>${msg}`;
+  $('toastArea').appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .4s'; el.style.opacity='0'; setTimeout(()=>el.remove(),400); }, 3200);
+}
+
+/* ---------------- modal helpers ---------------- */
+function showModal(id){ $(id).classList.add('active'); if(G) G.paused=true; }
+function hideModal(id){ $(id).classList.remove('active'); if(G && !anyModalActive()) G.paused=false; }
+function anyModalActive(){
+  return ['pauseModal','levelUpModal','itemModal','shopModal','eventModal','pathModal','mapModal','invModal']
+    .some(id=>$(id).classList.contains('active'));
+}
+function hideAllModals(){
+  ['pauseModal','levelUpModal','itemModal','shopModal','eventModal','pathModal','mapModal','invModal'].forEach(hideModal);
+}
+function showHUD(v){ $('hud').style.display = v?'block':'none'; }
+
+/* pause */
+function togglePause(){
+  if(!G || G.gameOver) return;
+  if($('pauseModal').classList.contains('active')){ hideModal('pauseModal'); }
+  else { showModal('pauseModal'); }
+}
+$('pauseBtn').addEventListener('click', togglePause);
+$('btnResume').addEventListener('click', ()=>hideModal('pauseModal'));
+$('btnSoundToggle').addEventListener('click', function(){ save.settings.sound=!save.settings.sound; this.textContent='Sound: '+(save.settings.sound?'ON':'OFF'); persist(); });
+$('btnMusicToggle').addEventListener('click', function(){ save.settings.music=!save.settings.music; this.textContent='Music: '+(save.settings.music?'ON':'OFF'); persist(); });
+$('btnQuitRun').addEventListener('click', ()=>{ hideModal('pauseModal'); endRun(false, true); });
+
+/* map */
+$('mapBtn').addEventListener('click', ()=>{ renderMap(); showModal('mapModal'); });
+$('closeMap').addEventListener('click', ()=>hideModal('mapModal'));
+function renderMap(){
+  const box = $('dmapContent'); box.innerHTML='';
+  const nodes = G.dungeon.nodes;
+  const byLayer = {};
+  Object.values(nodes).forEach(n=>{ (byLayer[n.x]=byLayer[n.x]||[]).push(n); });
+  const layers = Object.keys(byLayer).map(Number).sort((a,b)=>a-b);
+  const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.gap='30px';
+  layers.forEach(l=>{
+    const col = document.createElement('div'); col.style.display='flex'; col.style.flexDirection='column'; col.style.gap='16px'; col.style.justifyContent='center';
+    byLayer[l].forEach(n=>{
+      const div = document.createElement('div');
+      div.className = 'dmap-node'+(n.visited?' visited':'')+(n.id===G.currentRoomId?' current':'')+(n.type==='boss'?' boss':'');
+      div.textContent = n.visited ? ROOM_ICON[n.type] : '?';
+      div.title = n.visited ? capitalize(n.type) : 'Unknown';
+      col.appendChild(div);
+    });
+    wrap.appendChild(col);
+  });
+  box.appendChild(wrap);
+}
+
+/* inventory */
+$('invBtn').addEventListener('click', ()=>{ renderInv(); showModal('invModal'); });
+$('closeInv').addEventListener('click', ()=>hideModal('invModal'));
+function renderInv(){
+  const box = $('invContent'); box.innerHTML='';
+  if(G.player.items.length===0){ box.innerHTML='<div style="color:var(--dim);">No items yet. Explore the dungeon!</div>'; return; }
+  G.player.items.forEach(it=>{
+    const div = document.createElement('div'); div.className='item-card '+it.rarity;
+    div.innerHTML = `<div class="iname">${it.name}</div><div class="irarity">${it.rarity}</div><div class="idesc">${it.desc}</div>`;
+    box.appendChild(div);
+  });
+  if(G.player.synergiesActive.size){
+    const s = document.createElement('div'); s.style.width='100%'; s.style.marginTop='10px'; s.style.color='var(--mythic)'; s.style.fontWeight='700';
+    s.textContent = 'Active Synergies: '+[...G.player.synergiesActive].join(', ');
+    box.appendChild(s);
+  }
+}
+
+/* ---------------- end run / stats ---------------- */
+function endRun(victory, abandoned){
+  if(!G) return;
+  G.gameOver = true; G.paused = true;
+  showHUD(false);
+  hideAllModals();
+  save.stats.totalRuns++;
+  if(!victory) save.stats.totalDeaths++;
+  save.stats.highestFloor = Math.max(save.stats.highestFloor, G.floorIdx+1);
+  const elapsed = Math.round((performance.now()-G.startTime)/1000);
+  save.stats.bestTime = save.stats.bestTime===0 ? elapsed : (victory? Math.min(save.stats.bestTime,elapsed): save.stats.bestTime);
+
+  const shardsGained = Math.round( (G.floorIdx+1)*8 + G.stats.enemiesDefeated*0.6 + G.stats.bossesDefeated*15 + (victory?50:0) );
+  save.soulShards += shardsGained;
+
+  if(victory){
+    save.ngPlusUnlocked = true;
+    unlockDifficulties();
+  }
+  persist();
+
+  const statsObj = {
+    'Floor reached': G.floorIdx+1, 'Enemies defeated': G.stats.enemiesDefeated,
+    'Gold collected': G.stats.goldCollected, 'Bosses defeated': G.stats.bossesDefeated,
+    'Damage dealt': Math.round(G.stats.damageDealt), 'Items collected': G.stats.itemsCollected,
+    'Run time': formatTime(elapsed)
+  };
+  const targetGrid = victory ? $('victoryStats') : $('deathStats');
+  targetGrid.innerHTML='';
+  Object.entries(statsObj).forEach(([k,v])=>{
+    targetGrid.innerHTML += `<div class="label">${k}:</div><div class="val">${v}</div>`;
+  });
+
+  if(victory){
+    $('soulShardsGainedV').textContent = shardsGained;
+    showScreen('victoryScreen');
+  } else {
+    $('deathCause').textContent = abandoned? 'You abandoned the run.' : 'You were slain.';
+    $('soulShardsGained').textContent = shardsGained;
+    showScreen('deathScreen');
+  }
+  updateGoldTotal();
+}
+function updateGoldTotal(){ /* placeholder for future economy hooks */ }
+function unlockDifficulties(){
+  if(save.stats.highestFloor>=3) save.difficultyUnlocked.hard = true;
+  if(save.ngPlusUnlocked) save.difficultyUnlocked.nightmare = true;
+  if(save.ngPlusLevel>=1) save.difficultyUnlocked.inferno = true;
+}
+function formatTime(s){ const m=Math.floor(s/60), sec=s%60; return m+':'+String(sec).padStart(2,'0'); }
+
+/* ---------------- screens navigation ---------------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+$('btnNewRun').addEventListener('click', ()=>{
+  showScreen('cinematicScreen');
+  playCinematic();
+});
+function playCinematic(){
+  const t1=$('cineText1'), t2=$('cineText2');
+  t1.classList.remove('show'); t2.classList.remove('show');
+  setTimeout(()=>t1.classList.add('show'),200);
+  setTimeout(()=>{ t1.classList.remove('show'); }, 2200);
+  setTimeout(()=>t2.classList.add('show'),2600);
+  const timer = setTimeout(()=>launchRun(), 5200);
+  $('btnSkipCine').onclick = ()=>{ clearTimeout(timer); launchRun(); };
+}
+function launchRun(){
+  startNewRun(difficultySelected, save.ngPlusLevel>0?save.ngPlusLevel:0);
+  showScreen('');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+}
+$('btnTryAgain').addEventListener('click', ()=>{ showScreen('cinematicScreen'); playCinematic(); });
+$('btnReturnHub').addEventListener('click', ()=>openHub());
+$('btnReturnHub2').addEventListener('click', ()=>openHub());
+$('btnNewGamePlus').addEventListener('click', ()=>{
+  save.ngPlusLevel++; persist();
+  showScreen('cinematicScreen'); playCinematic();
+});
+$('btnHub').addEventListener('click', ()=>openHub());
+$('btnHubBack').addEventListener('click', ()=>showScreen('titleScreen'));
+$('btnStats').addEventListener('click', ()=>{ openHub(); setHubTab('chronicle'); });
+
+/* ---------------- hub ---------------- */
+function openHub(){
+  showScreen('hubScreen');
+  $('hubShards').textContent = save.soulShards;
+  setHubTab(currentHubTab||'forge');
+}
+let currentHubTab='forge';
+document.querySelectorAll('#hubTabs .tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> setHubTab(btn.dataset.tab));
+});
+function setHubTab(tab){
+  currentHubTab = tab;
+  document.querySelectorAll('#hubTabs .tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  const content = $('hubContent');
+  $('hubShards').textContent = save.soulShards;
+  if(tab==='forge') renderForge(content);
+  else if(tab==='archive') renderArchive(content);
+  else if(tab==='chronicle') renderChronicle(content);
+  else if(tab==='difficulty') renderDifficulty(content);
+}
+function renderForge(content){
+  content.innerHTML = '<div class="upgrade-grid" id="upgGrid"></div>';
+  const grid = $('upgGrid');
+  Object.entries(UPGRADE_DEFS).forEach(([key,def])=>{
+    const lvl = save.upgrades[key];
+    const cost = def.cost(lvl);
+    const maxed = lvl>=def.max;
+    const div = document.createElement('div'); div.className='upg-card';
+    div.innerHTML = `<div class="uname">${def.name}</div><div class="udesc">${def.desc}</div>
+      <div class="upg-lvl">Lv ${lvl}/${def.max}</div>
+      <button class="upg-btn" ${maxed||save.soulShards<cost?'disabled':''}>${maxed?'MAXED':'Upgrade — 🔮 '+cost}</button>`;
+    div.querySelector('button').onclick = ()=>{
+      if(save.soulShards>=cost && !maxed){ save.soulShards-=cost; save.upgrades[key]++; persist(); setHubTab('forge'); }
+    };
+    grid.appendChild(div);
+  });
+}
+function renderArchive(content){
+  let html = '<div class="upgrade-grid">';
+  ITEM_DEFS.forEach(it=>{
+    const found = save.discoveredItems[it.id];
+    if(found){
+      html += `<div class="upg-card item-card ${it.rarity}" style="text-align:center;"><div class="iname">${it.name}</div><div class="irarity">${it.rarity}</div><div class="idesc">${it.desc}</div><div class="upg-lvl">Found ${found}×</div></div>`;
+    } else {
+      html += `<div class="upg-card" style="opacity:.5;"><div class="uname">???</div><div class="udesc">Undiscovered</div></div>`;
+    }
+  });
+  html += '</div>';
+  content.innerHTML = html;
+}
+function renderChronicle(content){
+  const s = save.stats;
+  let achHtml = '<div class="upgrade-grid">';
+  ACHIEVEMENT_DEFS.forEach(a=>{
+    const done = save.achievements[a.id];
+    achHtml += `<div class="upg-card" style="${done?'':'opacity:.4;'}"><div class="uname">${done?'🏆':'🔒'} ${a.name}</div><div class="udesc">${a.desc}</div></div>`;
+  });
+  achHtml += '</div>';
+  content.innerHTML = `
+    <div class="stat-grid" style="margin:0 auto 16px;justify-content:center;">
+      <div class="label">Total Runs:</div><div class="val">${s.totalRuns}</div>
+      <div class="label">Total Deaths:</div><div class="val">${s.totalDeaths}</div>
+      <div class="label">Enemies Defeated:</div><div class="val">${s.enemiesDefeated}</div>
+      <div class="label">Bosses Defeated:</div><div class="val">${s.bossesDefeated}</div>
+      <div class="label">Highest Floor:</div><div class="val">${s.highestFloor}</div>
+      <div class="label">Best Time:</div><div class="val">${s.bestTime?formatTime(s.bestTime):'—'}</div>
+      <div class="label">Total Gold:</div><div class="val">${s.totalGold}</div>
+      <div class="label">Total Damage:</div><div class="val">${Math.round(s.totalDamage)}</div>
+    </div>${achHtml}`;
+}
+function renderDifficulty(content){
+  const diffs = [
+    {id:'normal', name:'Normal', locked:false},
+    {id:'hard', name:'Hard', locked:!save.difficultyUnlocked.hard},
+    {id:'nightmare', name:'Nightmare', locked:!save.difficultyUnlocked.nightmare},
+    {id:'inferno', name:'Inferno', locked:!save.difficultyUnlocked.inferno}
+  ];
+  let html = '<div class="diff-row">';
+  diffs.forEach(d=>{
+    html += `<button class="diff-btn ${difficultySelected===d.id?'active':''}" data-diff="${d.id}" ${d.locked?'disabled style="opacity:.35;"':''}>${d.name}${d.locked?' 🔒':''}</button>`;
+  });
+  html += '</div><div class="small-hint" style="margin-bottom:12px;">Higher difficulty scales enemy strength — and rewards.</div>';
+  html += `<button class="menu-btn primary" id="btnStartFromHub">Enter the Dungeon</button>`;
+  content.innerHTML = html;
+  content.querySelectorAll('.diff-btn').forEach(b=>{
+    if(!b.disabled) b.onclick = ()=>{ difficultySelected=b.dataset.diff; renderDifficulty(content); };
+  });
+  $('btnStartFromHub').onclick = ()=>{ showScreen('cinematicScreen'); playCinematic(); };
+}
+
+/* prevent context-menu / space scrolling */
+window.addEventListener('keydown', e=>{ if(e.key===' ' && document.activeElement===document.body) e.preventDefault(); });
+
+/* init */
+showScreen('titleScreen');
+})();
 </script>
 </body>
 </html>
