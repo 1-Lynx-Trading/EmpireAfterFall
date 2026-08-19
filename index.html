@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EMPIRE: AFTERFALL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root{
+  --bg-black:#07090a; --charcoal:#0e1113; --gunmetal:#171b1e; --steel:#2a3136;
+  --steel-light:#3a444a; --accent:#4fd8c4; --accent-dim:#2c7d70; --accent-glow:rgba(79,216,196,.35);
+  --danger:#e2515a; --warn:#e2b350; --gold:#d6b25f; --text:#dfe6e6; --text-dim:#8a9698;
+  --border:#2a3236; --panel:rgba(20,24,26,.9);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg-black);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;}
+button{font-family:inherit;cursor:pointer;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--steel-light);border-radius:4px;}
+::-webkit-scrollbar-track{background:var(--charcoal);}
+
+.screen{position:fixed;inset:0;display:none;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ===== MAIN MENU ===== */
+#menu{
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(79,216,196,.08), transparent 60%),
+    linear-gradient(180deg, #05070a 0%, #0a0d10 60%, #05070a 100%);
+  align-items:center;justify-content:center;text-align:center;position:relative;
+}
+#menu::before{
+  content:"";position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(79,216,196,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,216,196,.04) 1px, transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at center, black 0%, transparent 75%);
+  animation:gridpan 60s linear infinite;
+}
+@keyframes gridpan{from{background-position:0 0,0 0;}to{background-position:200px 400px,200px 400px;}}
+.menu-inner{position:relative;z-index:2;}
+.menu-title{font-size:64px;letter-spacing:14px;font-weight:700;color:#eef7f6;
+  text-shadow:0 0 30px var(--accent-glow),0 0 4px #fff;}
+.menu-sub{font-size:26px;letter-spacing:22px;color:var(--accent);margin-top:2px;font-weight:300;}
+.menu-tag{margin-top:22px;color:var(--text-dim);font-style:italic;letter-spacing:1px;font-size:14px;}
+.menu-buttons{margin-top:46px;display:flex;flex-direction:column;gap:12px;width:320px;margin-left:auto;margin-right:auto;}
+.menu-btn{
+  background:linear-gradient(180deg, rgba(42,49,54,.6), rgba(20,24,26,.6));
+  border:1px solid var(--border);color:var(--text);padding:14px 18px;font-size:14px;
+  letter-spacing:3px;text-transform:uppercase;transition:all .2s;position:relative;
+}
+.menu-btn:hover{border-color:var(--accent);color:#fff;box-shadow:0 0 18px var(--accent-glow) inset,0 0 10px var(--accent-glow);}
+.menu-btn:disabled{opacity:.35;cursor:not-allowed;}
+.menu-footer{position:absolute;bottom:16px;width:100%;text-align:center;color:#4a5558;font-size:11px;letter-spacing:2px;}
+
+/* ===== SETUP SCREEN ===== */
+#setup{background:var(--bg-black);align-items:center;justify-content:center;}
+.setup-box{width:820px;max-width:92vw;background:var(--panel);border:1px solid var(--border);padding:34px;
+  box-shadow:0 0 60px rgba(0,0,0,.6);}
+.setup-box h2{letter-spacing:4px;color:var(--accent);font-size:20px;margin-bottom:22px;text-transform:uppercase;}
+.faction-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.faction-card{border:1px solid var(--border);padding:14px;background:rgba(255,255,255,.02);transition:.2s;}
+.faction-card:hover{border-color:var(--steel-light);}
+.faction-card.selected{border-color:var(--accent);box-shadow:0 0 14px var(--accent-glow);background:rgba(79,216,196,.06);}
+.faction-name{font-weight:700;letter-spacing:1px;margin-bottom:4px;}
+.faction-desc{font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.4;}
+.faction-stat{font-size:11px;color:var(--accent);}
+.setup-row{display:flex;gap:14px;align-items:center;margin-bottom:16px;}
+.setup-row input{background:var(--gunmetal);border:1px solid var(--border);color:var(--text);padding:8px 10px;flex:1;}
+.setup-row label{font-size:12px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;width:110px;}
+.setup-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;}
+
+/* ===== GAME SCREEN ===== */
+#game{flex-direction:column;background:var(--bg-black);}
+#topbar{
+  height:52px;background:linear-gradient(180deg,#12161818,#0a0c0d);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:22px;flex-shrink:0;
+}
+.res-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-dim);}
+.res-item .val{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
+.res-icon{width:8px;height:8px;border-radius:2px;display:inline-block;}
+#topbar .spacer{flex:1;}
+#turn-display{font-size:13px;letter-spacing:2px;color:var(--accent);border:1px solid var(--accent-dim);padding:5px 12px;}
+#endturn-btn{
+  background:linear-gradient(180deg,var(--accent-dim),#1c5750);border:1px solid var(--accent);color:#eafff9;
+  padding:8px 18px;letter-spacing:2px;font-size:12px;text-transform:uppercase;font-weight:600;
+}
+#endturn-btn:hover{box-shadow:0 0 14px var(--accent-glow);}
+
+#body{flex:1;display:flex;min-height:0;}
+#sidebar{width:180px;background:var(--charcoal);border-right:1px solid var(--border);flex-shrink:0;padding:10px 0;overflow-y:auto;}
+.side-btn{display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:12.5px;color:var(--text-dim);
+  letter-spacing:1px;border-left:3px solid transparent;transition:.15s;}
+.side-btn:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.side-btn.active{color:var(--accent);border-left-color:var(--accent);background:rgba(79,216,196,.06);}
+
+#center{flex:1;position:relative;overflow:hidden;background:#050708;}
+#map-wrap{position:absolute;inset:0;overflow:auto;}
+#map-svg{display:block;}
+.tile{stroke:#05070855;stroke-width:1;cursor:pointer;transition:filter .15s;}
+.tile:hover{filter:brightness(1.35);}
+.tile.selected{stroke:var(--accent);stroke-width:2.5;}
+.tile-label{font-size:7px;fill:#000;pointer-events:none;font-weight:600;opacity:.55;}
+.army-marker{cursor:pointer;}
+
+#right-panel{width:320px;background:var(--panel);border-left:1px solid var(--border);flex-shrink:0;
+  overflow-y:auto;padding:16px;}
+#right-panel h3{color:var(--accent);letter-spacing:2px;font-size:14px;margin-bottom:10px;text-transform:uppercase;}
+.info-row{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid #1c2124;color:var(--text-dim);}
+.info-row .v{color:var(--text);}
+.panel-section{margin-top:16px;}
+.mini-btn{width:100%;background:var(--gunmetal);border:1px solid var(--border);color:var(--text);
+  padding:9px;font-size:11.5px;letter-spacing:1px;margin-top:6px;text-transform:uppercase;}
+.mini-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.mini-btn:disabled{opacity:.3;cursor:not-allowed;}
+.mini-btn.danger:hover:not(:disabled){border-color:var(--danger);color:var(--danger);}
+.empty-hint{color:#546065;font-size:12.5px;line-height:1.5;padding:20px 0;text-align:center;}
+
+/* view panels (cities/military/tech/etc rendered in #view-content over map) */
+#view-content{position:absolute;inset:0;background:var(--bg-black);overflow-y:auto;padding:22px;display:none;}
+#view-content.active{display:block;}
+.view-header{font-size:18px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:18px;}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+.card{background:var(--panel);border:1px solid var(--border);padding:14px;}
+.card h4{font-size:13px;letter-spacing:1px;color:var(--text);margin-bottom:8px;}
+.card .desc{font-size:11.5px;color:var(--text-dim);margin-bottom:10px;line-height:1.4;min-height:32px;}
+.bar-bg{background:#1c2124;height:6px;border-radius:3px;overflow:hidden;margin:6px 0;}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--accent));}
+.tag{display:inline-block;font-size:10px;padding:2px 6px;border:1px solid var(--border);border-radius:3px;color:var(--text-dim);margin-right:4px;}
+
+.tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);}
+.tab{padding:8px 16px;font-size:12px;letter-spacing:1px;color:var(--text-dim);border-bottom:2px solid transparent;text-transform:uppercase;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:100;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);width:460px;max-width:90vw;padding:24px;
+  box-shadow:0 0 60px rgba(0,0,0,.7);animation:modalIn .18s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.modal h3{color:var(--accent);letter-spacing:2px;margin-bottom:14px;font-size:16px;text-transform:uppercase;}
+.modal .body{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.modal-actions button{flex:1;min-width:120px;background:var(--gunmetal);border:1px solid var(--border);color:var(--text);
+  padding:11px;font-size:12px;letter-spacing:1px;text-transform:uppercase;}
+.modal-actions button:hover{border-color:var(--accent);color:var(--accent);}
+.forecast-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1c2124;font-size:13px;}
+.forecast-pct{font-size:30px;font-weight:700;text-align:center;margin:14px 0;color:var(--accent);}
+
+/* notifications */
+#notif-stack{position:fixed;top:64px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;width:300px;}
+.notif{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent);padding:10px 14px;
+  font-size:12px;color:var(--text-dim);animation:notifIn .25s ease;}
+.notif b{color:var(--text);}
+.notif.warn{border-left-color:var(--warn);}
+.notif.danger{border-left-color:var(--danger);}
+@keyframes notifIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+/* end screen */
+#endscreen{background:radial-gradient(ellipse at 50% 30%,rgba(226,81,90,.08),#05070a 70%);align-items:center;justify-content:center;}
+#endscreen.win{background:radial-gradient(ellipse at 50% 30%,rgba(79,216,196,.12),#05070a 70%);}
+.end-title{font-size:44px;letter-spacing:10px;text-align:center;color:#eef7f6;text-shadow:0 0 30px rgba(226,81,90,.5);}
+#endscreen.win .end-title{text-shadow:0 0 30px var(--accent-glow);}
+.end-stats{margin:26px auto;width:340px;}
+
+.hint-badge{position:absolute;bottom:14px;left:14px;background:var(--panel);border:1px solid var(--border);
+  padding:8px 14px;font-size:11.5px;color:var(--text-dim);max-width:340px;}
+</style>
+</head>
+<body>
+
+<!-- ============ MAIN MENU ============ -->
+<div id="menu" class="screen active">
+  <div class="menu-inner">
+    <div class="menu-title">EMPIRE</div>
+    <div class="menu-sub">AFTERFALL</div>
+    <div class="menu-tag">"Civilization ended. Power survived."</div>
+    <div class="menu-buttons">
+      <button class="menu-btn" onclick="goToSetup()">New Campaign</button>
+      <button class="menu-btn" id="continue-btn" onclick="continueGame()">Continue</button>
+      <button class="menu-btn" onclick="showHowTo()">How To Play</button>
+      <button class="menu-btn" onclick="toggleMute()" id="mute-btn">Sound: On</button>
+    </div>
+  </div>
+  <div class="menu-footer">EMPIRE: AFTERFALL — PROTOTYPE BUILD</div>
+</div>
+
+<!-- ============ SETUP ============ -->
+<div id="setup" class="screen">
+  <div class="setup-box">
+    <h2>Select Your Faction</h2>
+    <div class="faction-grid" id="faction-grid"></div>
+    <div class="setup-row">
+      <label>World Seed</label>
+      <input id="seed-input" placeholder="leave blank for random">
+      <button class="mini-btn" style="width:auto;padding:9px 14px;margin:0;" onclick="document.getElementById('seed-input').value=Math.floor(Math.random()*999999)">Randomize</button>
+    </div>
+    <div class="setup-actions">
+      <button class="menu-btn" style="width:auto;padding:12px 20px;" onclick="showScreen('menu')">Back</button>
+      <button class="menu-btn" style="width:auto;padding:12px 20px;" onclick="startGame()">Begin Campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div id="game" class="screen">
+  <div id="topbar">
+    <div class="res-item"><span class="res-icon" style="background:#d6b25f"></span>Credits <span class="val" id="r-credits">0</span></div>
+    <div class="res-item"><span class="res-icon" style="background:#6bc464"></span>Food <span class="val" id="r-food">0</span></div>
+    <div class="res-item"><span class="res-icon" style="background:#9aa4a8"></span>Steel <span class="val" id="r-steel">0</span></div>
+    <div class="res-item"><span class="res-icon" style="background:#e2b350"></span>Energy <span class="val" id="r-energy">0</span></div>
+    <div class="res-item"><span class="res-icon" style="background:#4fd8c4"></span>Science <span class="val" id="r-science">0</span></div>
+    <div class="res-item"><span class="res-icon" style="background:#b088e0"></span>Rare Metals <span class="val" id="r-rare">0</span></div>
+    <div class="res-item"><span class="res-icon" style="background:#e2515a"></span>Pop <span class="val" id="r-pop">0</span></div>
+    <div class="spacer"></div>
+    <div id="turn-display">YEAR 1</div>
+    <button id="endturn-btn" onclick="endTurn()">End Turn</button>
+  </div>
+  <div id="body">
+    <div id="sidebar">
+      <div class="side-btn active" data-view="map" onclick="setView('map')">🗺 Overview</div>
+      <div class="side-btn" data-view="cities" onclick="setView('cities')">🏙 Cities</div>
+      <div class="side-btn" data-view="military" onclick="setView('military')">⚔ Military</div>
+      <div class="side-btn" data-view="tech" onclick="setView('tech')">🔬 Technology</div>
+      <div class="side-btn" data-view="diplomacy" onclick="setView('diplomacy')">🤝 Diplomacy</div>
+      <div class="side-btn" data-view="economy" onclick="setView('economy')">💰 Economy</div>
+      <div class="side-btn" data-view="exploration" onclick="setView('exploration')">🧭 Exploration</div>
+      <div class="side-btn" data-view="policies" onclick="setView('policies')">👑 Policies</div>
+    </div>
+    <div id="center">
+      <div id="map-wrap"><svg id="map-svg"></svg></div>
+      <div id="view-content"></div>
+      <div class="hint-badge" id="hint-badge">Click a territory to inspect it.</div>
+    </div>
+    <div id="right-panel">
+      <div id="panel-body"><div class="empty-hint">Select a territory, city, or army to see details here.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ END SCREEN ============ -->
+<div id="endscreen" class="screen">
+  <div style="text-align:center;">
+    <div class="end-title" id="end-title">EMPIRE FALLEN</div>
+    <div class="end-stats" id="end-stats"></div>
+    <div class="menu-buttons">
+      <button class="menu-btn" onclick="goToSetup()">Play Again</button>
+      <button class="menu-btn" onclick="showScreen('menu')">Main Menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="notif-stack"></div>
+<div class="modal-overlay" id="modal-overlay"><div class="modal" id="modal-inner"></div></div>
+
+<script>
+/* =========================================================================
+   EMPIRE: AFTERFALL — CORE ENGINE
+   Sections: RNG/WorldGen, Data, State, Rendering, Economy, Combat, AI,
+   Diplomacy, Events, Tech, Save/Load, UI/Views
+   ========================================================================= */
+
+/* ---------------- RNG (seeded) ---------------- */
+function mulberry32(a){
+  return function(){
+    a|=0;a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  }
+}
+function hashSeed(str){let h=1779033703;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return h>>>0;}
+let RNG=Math.random;
+function rand(){return RNG();}
+function randInt(a,b){return Math.floor(rand()*(b-a+1))+a;}
+function choice(arr){return arr[Math.floor(rand()*arr.length)];}
+
+/* ---------------- STATIC DATA ---------------- */
+const FACTIONS=[
+  {id:'crimson',name:'Crimson Union',color:'#e2515a',desc:'A militaristic faction focused on industrial production and warfare.',
+   strength:'Military',weakness:'Diplomacy',bonus:{military:1.25,diplomacy:0.8},personality:'aggressive'},
+  {id:'azure',name:'Azure Republic',color:'#4f9fd8',desc:'A technologically advanced faction pursuing scientific dominance.',
+   strength:'Research',weakness:'Low military strength',bonus:{science:1.3,military:0.85},personality:'technological'},
+  {id:'iron',name:'Iron Covenant',color:'#9aa4a8',desc:'Industrial survivalists who out-produce every rival.',
+   strength:'Production',weakness:'Slow technological development',bonus:{industry:1.3,science:0.8},personality:'economic'},
+  {id:'verdant',name:'Verdant Collective',color:'#6bc464',desc:'Controls agricultural regions and natural resources.',
+   strength:'Food & Population Growth',weakness:'Limited advanced weaponry',bonus:{food:1.35,military:0.85},personality:'diplomatic'},
+  {id:'nomad',name:'The Nomads',color:'#d6b25f',desc:'Highly mobile survivors who strike fast and vanish.',
+   strength:'Exploration & Movement',weakness:'Weak cities',bonus:{movement:1.4,defense:0.8},personality:'aggressive'},
+];
+
+const TERRAIN=[
+  {id:'plains',color:'#3a4a35',label:'Plains',bonus:{food:1}},
+  {id:'forest',color:'#28422e',label:'Forest',bonus:{food:2}},
+  {id:'mountain',color:'#4a4640',label:'Mountain',bonus:{defense:25}},
+  {id:'desert',color:'#6b5a3a',label:'Desert',bonus:{energy:1}},
+  {id:'industrial',color:'#524b52',label:'Industrial Zone',bonus:{steel:3}},
+  {id:'ruins',color:'#3f3550',label:'Ruins',bonus:{rare:2}},
+  {id:'river',color:'#28454a',label:'River Basin',bonus:{food:2}},
+  {id:'energyzone',color:'#4a4020',label:'Energy Zone',bonus:{energy:3}},
+];
+
+const TECHS=[
+  // MILITARY
+  {id:'imp_weapons',branch:'Military',name:'Improved Weapons',cost:60,desc:'+15% unit attack.',effect:{attackMult:0.15}},
+  {id:'armored',branch:'Military',name:'Armored Vehicles',cost:120,desc:'Unlocks Armored Vehicle unit.',effect:{unlockUnit:'armor'}},
+  {id:'adv_armor',branch:'Military',name:'Advanced Armor',cost:160,desc:'+15% unit defense.',effect:{defenseMult:0.15}},
+  {id:'drones',branch:'Military',name:'Drone Warfare',cost:150,desc:'Unlocks Drone unit.',effect:{unlockUnit:'drone'}},
+  {id:'rail',branch:'Military',name:'Rail Weapons',cost:260,desc:'+25% artillery attack.',effect:{attackMult:0.25}},
+  {id:'autocombat',branch:'Military',name:'Autonomous Combat',cost:340,desc:'Unlocks Mech unit.',effect:{unlockUnit:'mech'}},
+  // INDUSTRY
+  {id:'autofactory',branch:'Industry',name:'Automated Factories',cost:70,desc:'+20% steel production.',effect:{steelMult:0.2}},
+  {id:'adv_manu',branch:'Industry',name:'Advanced Manufacturing',cost:140,desc:'-15% unit costs.',effect:{unitCostMult:-0.15}},
+  {id:'res_opt',branch:'Industry',name:'Resource Optimization',cost:120,desc:'+15% all resource production.',effect:{allMult:0.15}},
+  {id:'robotics',branch:'Industry',name:'Industrial Robotics',cost:220,desc:'+25% steel production.',effect:{steelMult:0.25}},
+  // SCIENCE
+  {id:'adv_computing',branch:'Science',name:'Advanced Computing',cost:80,desc:'+20% science production.',effect:{scienceMult:0.2}},
+  {id:'energy_research',branch:'Science',name:'Energy Research',cost:130,desc:'+20% energy production.',effect:{energyMult:0.2}},
+  {id:'ai',branch:'Science',name:'Artificial Intelligence',cost:260,desc:'+25% science production.',effect:{scienceMult:0.25}},
+  {id:'quantum',branch:'Science',name:'Quantum Systems',cost:400,desc:'Unlocks late-game bonuses.',effect:{allMult:0.2}},
+  // CIVIL
+  {id:'adv_agri',branch:'Civil',name:'Advanced Agriculture',cost:70,desc:'+20% food production.',effect:{foodMult:0.2}},
+  {id:'medical',branch:'Civil',name:'Medical Infrastructure',cost:120,desc:'+15% population growth.',effect:{growthMult:0.15}},
+  {id:'pop_mgmt',branch:'Civil',name:'Population Management',cost:150,desc:'+10% housing capacity.',effect:{housingMult:0.1}},
+  {id:'transport',branch:'Civil',name:'Automated Transport',cost:180,desc:'+1 army movement.',effect:{moveBonus:1}},
+  // SPECIAL
+  {id:'old_archive',branch:'Special',name:'Old World Archive',cost:300,desc:'Reveals fragments of the Collapse. Requires exploring ruins.',effect:{lore:1}},
+];
+
+const UNIT_TYPES={
+  infantry:{name:'Infantry',cost:{steel:40,credits:20},attack:10,defense:8,move:2,upkeep:1,desc:'Cheap and versatile core unit.'},
+  armor:{name:'Armored Vehicle',cost:{steel:90,credits:40},attack:22,defense:18,move:3,upkeep:3,desc:'Strong against infantry formations.',req:'armored'},
+  artillery:{name:'Artillery',cost:{steel:80,credits:50},attack:28,defense:6,move:1,upkeep:3,desc:'Long-range bombardment unit.'},
+  drone:{name:'Drone Squadron',cost:{energy:60,credits:60},attack:16,defense:10,move:4,upkeep:2,desc:'Fast reconnaissance and strike unit.',req:'drones'},
+  mech:{name:'Mech Walker',cost:{steel:180,rare:40,credits:120},attack:45,defense:35,move:2,upkeep:6,desc:'Extremely powerful, extremely expensive.',req:'autocombat'},
+  defense:{name:'Defense Grid',cost:{steel:70,energy:40},attack:5,defense:30,move:0,upkeep:2,desc:'Static system protecting a territory.'},
+};
+
+const BUILDINGS={
+  industry:{name:'Industry',produces:'Steel',icon:'🏭'},
+  energy:{name:'Energy',produces:'Power/Fuel',icon:'⚡'},
+  agriculture:{name:'Agriculture',produces:'Food',icon:'🌾'},
+  research:{name:'Research',produces:'Science',icon:'🔬'},
+  defense:{name:'Defense',produces:'City defense',icon:'🛡'},
+  housing:{name:'Housing',produces:'Pop capacity',icon:'🏠'},
+};
+
+const EMPIRE_LEVELS=['Survivor','Settlement','Regional Power','Kingdom','Empire','Superpower'];
+
+/* ---------------- GAME STATE ---------------- */
+let G=null; // main game state object
+let selectedTile=null;
+let selectedArmy=null;
+let currentView='map';
+let muted=false;
+let pendingAttack=null;
+
+function newGameState(factionId,seed){
+  RNG=mulberry32(hashSeed(seed||String(Date.now())));
+  const faction=FACTIONS.find(f=>f.id===factionId);
+  const state={
+    seed:seed,
+    year:1,
+    playerFaction:factionId,
+    resources:{credits:400,food:200,steel:250,energy:150,science:50,rare:20},
+    population:1200,
+    empireLevel:0,
+    territories:[],
+    cities:[],
+    armies:[],
+    techsResearched:[],
+    researching:null,researchProgress:0,
+    relations:{},
+    achievements:[],
+    stats:{warsFought:0,techCount:0,territoriesEver:0},
+    log:[],
+    factions:{},
+    activePolicies:[],
+  };
+  FACTIONS.forEach(f=>{
+    state.factions[f.id]={id:f.id,alive:true,personality:f.personality};
+    if(f.id!==factionId) state.relations[f.id]=randInt(-10,20);
+  });
+  generateWorld(state);
+  return state;
+}
+
+/* ---------------- WORLD GENERATION ---------------- */
+const GRID_COLS=14, GRID_ROWS=10, HEXW=64, HEXH=56;
+
+function generateWorld(state){
+  const names=['North','South','East','West','Central','Upper','Lower','Outer','Inner','Old','New','Far'];
+  const nouns=['Industrial Zone','Basin','Ridge','Sector','Wastes','Hollow','Reach','District','Flats','Crossing','Depths','Span'];
+  let id=0;
+  for(let r=0;r<GRID_ROWS;r++){
+    for(let c=0;c<GRID_COLS;c++){
+      const terrain=choice(TERRAIN);
+      state.territories.push({
+        id:id++,
+        col:c,row:r,
+        name:choice(names)+' '+choice(nouns),
+        terrain:terrain.id,
+        owner:null, // null = unowned/neutral
+        population:randInt(500,8000),
+        development:1,
+        defense:terrain.id==='mountain'?randInt(30,50):randInt(5,25),
+        explored:false,
+        resourceYield:baseYieldFor(terrain.id),
+      });
+    }
+  }
+  // place faction capitals spread across the map
+  const spots=shuffle([...state.territories]).slice(0,FACTIONS.length);
+  FACTIONS.forEach((f,i)=>{
+    const t=spots[i];
+    t.owner=f.id; t.population=randInt(9000,15000); t.development=3; t.explored=true; t.capital=true;
+    t.defense+=20;
+    if(f.id===state.playerFaction){
+      state.capitalId=t.id;
+      state.cities.push(makeCity(t));
+      revealAround(state,t,2);
+    } else {
+      state.cities.push(makeCity(t));
+    }
+  });
+  // scatter a few independent settlements
+  state.territories.forEach(t=>{
+    if(!t.owner && rand()<0.06){ t.independent=true; t.population=randInt(1000,4000); }
+  });
+}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+function baseYieldFor(terrainId){
+  const t=TERRAIN.find(x=>x.id===terrainId);
+  return t.bonus;
+}
+function makeCity(territory){
+  return {
+    territoryId:territory.id, name:territory.name, level:1,
+    buildings:{industry:1,energy:1,agriculture:1,research:1,defense:1,housing:1},
+    owner:territory.owner,
+  };
+}
+function revealAround(state,center,radius){
+  state.territories.forEach(t=>{
+    const d=Math.abs(t.col-center.col)+Math.abs(t.row-center.row);
+    if(d<=radius) t.explored=true;
+  });
+}
+
+/* ---------------- SCREEN / VIEW MANAGEMENT ---------------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goToSetup(){
+  showScreen('setup');
+  const grid=document.getElementById('faction-grid');
+  grid.innerHTML='';
+  FACTIONS.forEach(f=>{
+    const div=document.createElement('div');
+    div.className='faction-card';
+    div.id='fc-'+f.id;
+    div.innerHTML=`<div class="faction-name" style="color:${f.color}">${f.name}</div>
+      <div class="faction-desc">${f.desc}</div>
+      <div class="faction-stat">Strength: ${f.strength}</div>
+      <div class="faction-stat" style="color:#c98a8a">Weakness: ${f.weakness}</div>`;
+    div.onclick=()=>selectFaction(f.id);
+    grid.appendChild(div);
+  });
+  selectFaction('crimson');
+}
+let chosenFaction='crimson';
+function selectFaction(id){
+  chosenFaction=id;
+  document.querySelectorAll('.faction-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('fc-'+id).classList.add('selected');
+}
+function startGame(){
+  const seed=document.getElementById('seed-input').value.trim();
+  G=newGameState(chosenFaction,seed);
+  showScreen('game');
+  selectedTile=null;selectedArmy=null;currentView='map';
+  setView('map');
+  renderAll();
+  notify('Campaign Started','Your faction, '+FACTIONS.find(f=>f.id===chosenFaction).name+', begins its story.','info');
+  saveGame();
+}
+function continueGame(){
+  const raw=localStorage.getItem('empire_afterfall_save');
+  if(!raw){notify('No Save Found','Start a new campaign first.','warn');return;}
+  G=JSON.parse(raw);
+  showScreen('game');
+  selectedTile=null;selectedArmy=null;currentView='map';
+  setView('map');
+  renderAll();
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('empire_afterfall_save')) document.getElementById('continue-btn').disabled=false;
+  else document.getElementById('continue-btn').disabled=true;
+});
+function toggleMute(){muted=!muted;document.getElementById('mute-btn').textContent='Sound: '+(muted?'Off':'On');}
+function showHowTo(){
+  openModal('How To Play',`
+    <p style="margin-bottom:10px;">You lead a surviving faction in a collapsed world. Each turn ("Year") you manage resources, build up cities, research technology, move armies, and interact with rival factions.</p>
+    <p style="margin-bottom:10px;">Click any territory on the map to see its details. Build on your own territories, attack neighboring enemy or neutral ones, and research technologies to unlock new units and bonuses.</p>
+    <p>End your turn to let the world advance. Watch your Capital — if it falls, your empire falls with it.</p>
+  `,[{label:'Got It',action:closeModal}]);
+}
+
+/* ---------------- SIDEBAR / VIEW SWITCH ---------------- */
+function setView(view){
+  currentView=view;
+  document.querySelectorAll('.side-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  const mapWrap=document.getElementById('map-wrap');
+  const content=document.getElementById('view-content');
+  const hint=document.getElementById('hint-badge');
+  if(view==='map'){
+    mapWrap.style.display='block'; content.classList.remove('active'); content.innerHTML='';
+    hint.style.display='block';
+  } else {
+    mapWrap.style.display='none'; content.classList.add('active'); hint.style.display='none';
+    renderView(view);
+  }
+}
+
+/* ---------------- RENDER: MAP ---------------- */
+function ownerColor(ownerId){
+  if(!ownerId) return null;
+  const f=FACTIONS.find(x=>x.id===ownerId);
+  return f?f.color:'#666';
+}
+function renderMap(){
+  const svg=document.getElementById('map-svg');
+  const w=GRID_COLS*HEXW+HEXW, h=GRID_ROWS*HEXH+HEXH;
+  svg.setAttribute('width',w); svg.setAttribute('height',h);
+  svg.innerHTML='';
+  G.territories.forEach(t=>{
+    const x=t.col*HEXW + (t.row%2? HEXW/2:0) + 30;
+    const y=t.row*HEXH*0.82 + 30;
+    const terr=TERRAIN.find(tt=>tt.id===t.terrain);
+    let fill=terr.color;
+    let opacity=1;
+    if(!t.explored){fill='#101315';opacity=1;}
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    const poly=hexPoints(x,y,HEXW*0.52,HEXH*0.52);
+    const el=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    el.setAttribute('points',poly);
+    el.setAttribute('class','tile'+(selectedTile===t.id?' selected':''));
+    el.setAttribute('fill',fill);
+    el.setAttribute('fill-opacity',opacity);
+    el.onclick=()=>selectTerritory(t.id);
+    g.appendChild(el);
+    if(t.explored){
+      if(t.owner){
+        const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        ring.setAttribute('cx',x);ring.setAttribute('cy',y);ring.setAttribute('r',6);
+        ring.setAttribute('fill',ownerColor(t.owner));
+        ring.setAttribute('stroke','#000');ring.setAttribute('stroke-width','1');
+        g.appendChild(ring);
+        if(t.capital){
+          const star=document.createElementNS('http://www.w3.org/2000/svg','text');
+          star.setAttribute('x',x);star.setAttribute('y',y-10);star.setAttribute('text-anchor','middle');
+          star.setAttribute('font-size','11');star.textContent='★';star.setAttribute('fill','#fff');
+          g.appendChild(star);
+        }
+      }
+      const label=document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('x',x);label.setAttribute('y',y+18);label.setAttribute('text-anchor','middle');
+      label.setAttribute('class','tile-label');label.textContent=t.name;
+      g.appendChild(label);
+    } else {
+      const q=document.createElementNS('http://www.w3.org/2000/svg','text');
+      q.setAttribute('x',x);q.setAttribute('y',y+4);q.setAttribute('text-anchor','middle');
+      q.setAttribute('font-size','13');q.setAttribute('fill','#3a4448');q.textContent='?';
+      g.appendChild(q);
+    }
+    svg.appendChild(g);
+  });
+  // armies
+  G.armies.forEach(a=>{
+    const t=G.territories[a.territoryId];
+    const x=t.col*HEXW + (t.row%2? HEXW/2:0) + 30;
+    const y=t.row*HEXH*0.82 + 30 + 14;
+    const marker=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    marker.setAttribute('x',x-5);marker.setAttribute('y',y-5);marker.setAttribute('width',10);marker.setAttribute('height',10);
+    marker.setAttribute('fill',ownerColor(a.owner));marker.setAttribute('stroke','#fff');marker.setAttribute('stroke-width','1');
+    marker.setAttribute('class','army-marker');
+    marker.onclick=(e)=>{e.stopPropagation();selectArmyMarker(a.id);};
+    svg.appendChild(marker);
+  });
+}
+function hexPoints(cx,cy,rx,ry){
+  let pts=[];
+  for(let i=0;i<6;i++){
+    const ang=Math.PI/180*(60*i-30);
+    pts.push((cx+rx*Math.cos(ang)).toFixed(1)+','+(cy+ry*Math.sin(ang)).toFixed(1));
+  }
+  return pts.join(' ');
+}
+
+/* ---------------- SELECTION / RIGHT PANEL ---------------- */
+function selectTerritory(id){
+  selectedTile=id; selectedArmy=null;
+  renderMap();
+  renderRightPanel();
+}
+function selectArmyMarker(id){
+  selectedArmy=id; selectedTile=null;
+  renderMap();
+  renderRightPanel();
+}
+function renderRightPanel(){
+  const body=document.getElementById('panel-body');
+  if(selectedArmy!==null){
+    const a=G.armies.find(x=>x.id===selectedArmy);
+    if(!a){body.innerHTML='<div class="empty-hint">Army no longer exists.</div>';return;}
+    const t=G.territories[a.territoryId];
+    const totalAtk=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].attack*u.count,0);
+    const totalDef=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].defense*u.count,0);
+    body.innerHTML=`<h3>${a.name}</h3>
+      <div class="info-row"><span>Location</span><span class="v">${t.name}</span></div>
+      <div class="info-row"><span>Owner</span><span class="v">${factionName(a.owner)}</span></div>
+      <div class="info-row"><span>Total Strength</span><span class="v">${totalAtk}</span></div>
+      <div class="info-row"><span>Total Defense</span><span class="v">${totalDef}</span></div>
+      <div class="panel-section"><h3>Units</h3>
+      ${a.units.map(u=>`<div class="info-row"><span>${UNIT_TYPES[u.type].name}</span><span class="v">x${u.count}</span></div>`).join('')}
+      </div>
+      ${a.owner===G.playerFaction?`
+      <div class="panel-section">
+        <h3>Orders</h3>
+        <button class="mini-btn" onclick="openMoveModal(${a.id})">Move Army</button>
+        ${neighborHasEnemy(t)?`<button class="mini-btn danger" onclick="openAttackModal(${a.id})">Attack Adjacent</button>`:''}
+        <button class="mini-btn danger" onclick="disbandArmy(${a.id})">Disband</button>
+      </div>`:''}
+    `;
+    return;
+  }
+  if(selectedTile!==null){
+    const t=G.territories[selectedTile];
+    if(!t.explored){
+      body.innerHTML=`<h3>Unknown Territory</h3><div class="empty-hint">Send a scout or expedition to reveal this region. Visit the Exploration tab.</div>`;
+      return;
+    }
+    const terr=TERRAIN.find(x=>x.id===t.terrain);
+    const city=G.cities.find(c=>c.territoryId===t.id);
+    body.innerHTML=`<h3>${t.name}</h3>
+      <div class="info-row"><span>Owner</span><span class="v">${t.owner?factionName(t.owner):(t.independent?'Independent':'Unclaimed')}</span></div>
+      <div class="info-row"><span>Terrain</span><span class="v">${terr.label}</span></div>
+      <div class="info-row"><span>Population</span><span class="v">${t.population.toLocaleString()}</span></div>
+      <div class="info-row"><span>Defense</span><span class="v">${t.defense}</span></div>
+      <div class="info-row"><span>Development</span><span class="v">Level ${t.development}</span></div>
+      <div class="info-row"><span>Resources</span><span class="v">${Object.keys(terr.bonus).join(', ')}</span></div>
+      ${city?`<div class="panel-section"><h3>City</h3><div class="info-row"><span>City Level</span><span class="v">${city.level}</span></div></div>`:''}
+      <div class="panel-section">
+        ${renderTerritoryActions(t)}
+      </div>
+    `;
+    return;
+  }
+  body.innerHTML='<div class="empty-hint">Select a territory, city, or army to see details here.</div>';
+}
+function factionName(id){const f=FACTIONS.find(x=>x.id===id);return f?f.name:'Unknown';}
+function neighborHasEnemy(t){
+  return neighbors(t).some(n=>n.owner && n.owner!==G.playerFaction);
+}
+function neighbors(t){
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+  return dirs.map(([dc,dr])=>G.territories.find(x=>x.col===t.col+dc&&x.row===t.row+dr)).filter(Boolean);
+}
+function renderTerritoryActions(t){
+  let html='';
+  if(t.owner===G.playerFaction){
+    const city=G.cities.find(c=>c.territoryId===t.id);
+    html+=`<h3>Actions</h3>`;
+    if(city){
+      html+=`<button class="mini-btn" onclick="setView('cities')">Manage City</button>`;
+    }
+    html+=`<button class="mini-btn" onclick="openRecruitModal(${t.id})">Recruit Units</button>`;
+  } else if(!t.owner && !t.independent){
+    html+=`<h3>Actions</h3><button class="mini-btn" onclick="claimTerritory(${t.id})">Settle / Claim (200 Credits)</button>`;
+  } else if(t.independent){
+    html+=`<h3>Actions</h3><div class="empty-hint" style="padding:8px 0;">Independent settlement. Can be annexed by force or influence.</div>
+    <button class="mini-btn" onclick="annexIndependent(${t.id})">Annex Peacefully (300 Credits)</button>`;
+  } else if(t.owner && t.owner!==G.playerFaction){
+    html+=`<h3>Actions</h3><div class="empty-hint" style="padding:8px 0;">Owned by ${factionName(t.owner)}. Move an army adjacent to attack.</div>`;
+  }
+  return html;
+}
+function claimTerritory(id){
+  const t=G.territories[id];
+  if(G.resources.credits<200){notify('Not Enough Credits','You need 200 Credits to settle this territory.','warn');return;}
+  G.resources.credits-=200;
+  t.owner=G.playerFaction; t.development=1;
+  G.cities.push(makeCity(t));
+  revealAround(G,t,1);
+  notify('Territory Claimed','Your faction has settled '+t.name+'.','info');
+  renderAll();
+}
+function annexIndependent(id){
+  const t=G.territories[id];
+  if(G.resources.credits<300){notify('Not Enough Credits','You need 300 Credits.','warn');return;}
+  G.resources.credits-=300;
+  t.owner=G.playerFaction; t.independent=false;
+  G.cities.push(makeCity(t));
+  notify('Settlement Annexed',t.name+' has joined your empire peacefully.','info');
+  renderAll();
+}
+
+/* ---------------- CITIES VIEW ---------------- */
+function renderView(view){
+  const c=document.getElementById('view-content');
+  if(view==='cities') return renderCitiesView(c);
+  if(view==='military') return renderMilitaryView(c);
+  if(view==='tech') return renderTechView(c);
+  if(view==='diplomacy') return renderDiplomacyView(c);
+  if(view==='economy') return renderEconomyView(c);
+  if(view==='exploration') return renderExplorationView(c);
+  if(view==='policies') return renderPoliciesView(c);
+}
+function renderCitiesView(c){
+  const myCities=G.cities.filter(ct=>ct.owner===G.playerFaction);
+  let html=`<div class="view-header">Cities (${myCities.length})</div><div class="card-grid">`;
+  myCities.forEach(city=>{
+    const t=G.territories[city.territoryId];
+    html+=`<div class="card">
+      <h4>${city.name} ${t.capital?'★':''}</h4>
+      <div class="desc">Level ${city.level} — ${cityLevelLabel(city.level)}</div>
+      ${Object.keys(BUILDINGS).map(b=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11.5px;color:var(--text-dim);">${BUILDINGS[b].icon} ${BUILDINGS[b].name} Lv${city.buildings[b]}</span>
+          <button class="mini-btn" style="width:auto;margin:0;padding:4px 8px;" onclick="upgradeBuilding(${city.territoryId},'${b}')">+</button>
+        </div>`).join('')}
+    </div>`;
+  });
+  html+='</div>';
+  c.innerHTML=html;
+}
+function cityLevelLabel(lvl){
+  if(lvl<=1)return 'Small Settlement';
+  if(lvl<=3)return 'Developing City';
+  if(lvl<=5)return 'Industrial Metropolis';
+  return 'Advanced Fortress City';
+}
+function buildingCost(currentLevel){return 60+currentLevel*45;}
+function upgradeBuilding(territoryId,b){
+  const city=G.cities.find(c=>c.territoryId===territoryId);
+  const cost=buildingCost(city.buildings[b]);
+  if(G.resources.credits<cost){notify('Insufficient Credits',`Upgrading ${BUILDINGS[b].name} costs ${cost} Credits.`,'warn');return;}
+  G.resources.credits-=cost;
+  city.buildings[b]++;
+  const t=G.territories[territoryId];
+  city.level=Math.max(...Object.values(city.buildings));
+  t.development=city.level;
+  notify('Building Upgraded',`${BUILDINGS[b].name} in ${city.name} is now Level ${city.buildings[b]}.`,'info');
+  renderAll();
+}
+
+/* ---------------- MILITARY VIEW ---------------- */
+function renderMilitaryView(c){
+  const myArmies=G.armies.filter(a=>a.owner===G.playerFaction);
+  let html=`<div class="view-header">Military Command</div>`;
+  html+=`<div class="tabs"><div class="tab active">Armies (${myArmies.length})</div></div>`;
+  html+=`<div class="card-grid">`;
+  if(myArmies.length===0) html+=`<div class="empty-hint">No armies yet. Recruit units from a territory panel.</div>`;
+  myArmies.forEach(a=>{
+    const t=G.territories[a.territoryId];
+    const atk=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].attack*u.count,0);
+    html+=`<div class="card"><h4>${a.name}</h4><div class="desc">At ${t.name} — Strength ${atk}</div>
+      ${a.units.map(u=>`<span class="tag">${UNIT_TYPES[u.type].name} x${u.count}</span>`).join('')}
+      <div style="margin-top:10px;"><button class="mini-btn" onclick="selectArmyMarker(${a.id});setView('map')">Inspect on Map</button></div>
+    </div>`;
+  });
+  html+='</div>';
+  html+=`<div class="view-header" style="margin-top:26px;">Available Unit Types</div><div class="card-grid">`;
+  Object.entries(UNIT_TYPES).forEach(([key,u])=>{
+    const locked=u.req && !G.techsResearched.includes(u.req);
+    html+=`<div class="card" style="${locked?'opacity:.4':''}">
+      <h4>${u.name}${locked?' (Locked)':''}</h4>
+      <div class="desc">${u.desc}</div>
+      <div style="font-size:11px;color:var(--text-dim);">ATK ${u.attack} · DEF ${u.defense} · MOV ${u.move} · Upkeep ${u.upkeep}</div>
+      <div style="font-size:11px;color:var(--gold);margin-top:4px;">Cost: ${Object.entries(u.cost).map(([k,v])=>v+' '+k).join(', ')}</div>
+    </div>`;
+  });
+  html+='</div>';
+  c.innerHTML=html;
+}
+
+/* ---------------- TECH VIEW ---------------- */
+function renderTechView(c){
+  let html=`<div class="view-header">Technology Tree</div>`;
+  if(G.researching){
+    const t=TECHS.find(x=>x.id===G.researching);
+    html+=`<div class="card" style="margin-bottom:18px;max-width:400px;"><h4>Researching: ${t.name}</h4>
+      <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(100,G.researchProgress/t.cost*100)}%"></div></div>
+      <div class="desc">${G.researchProgress.toFixed(0)} / ${t.cost} Science</div></div>`;
+  }
+  const branches=['Military','Industry','Science','Civil','Special'];
+  branches.forEach(branch=>{
+    html+=`<div class="view-header" style="font-size:14px;margin-top:20px;">${branch}</div><div class="card-grid">`;
+    TECHS.filter(t=>t.branch===branch).forEach(t=>{
+      const done=G.techsResearched.includes(t.id);
+      const active=G.researching===t.id;
+      html+=`<div class="card" style="${done?'border-color:var(--accent);':''}">
+        <h4>${t.name} ${done?'✓':''}</h4>
+        <div class="desc">${t.desc}</div>
+        <div style="font-size:11px;color:var(--text-dim);">Cost: ${t.cost} Science</div>
+        ${!done?`<button class="mini-btn" ${active?'disabled':''} onclick="startResearch('${t.id}')">${active?'In Progress':'Research'}</button>`:''}
+      </div>`;
+    });
+    html+='</div>';
+  });
+  c.innerHTML=html;
+}
+function startResearch(id){
+  if(G.researching===id)return;
+  G.researching=id; G.researchProgress=0;
+  notify('Research Started','Your scientists begin work on '+TECHS.find(t=>t.id===id).name+'.','info');
+  renderAll();
+}
+
+/* ---------------- DIPLOMACY VIEW ---------------- */
+function renderDiplomacyView(c){
+  let html=`<div class="view-header">Diplomacy</div><div class="card-grid">`;
+  FACTIONS.filter(f=>f.id!==G.playerFaction).forEach(f=>{
+    if(!G.factions[f.id].alive){
+      html+=`<div class="card" style="opacity:.4;"><h4 style="color:${f.color}">${f.name}</h4><div class="desc">This faction has been eliminated.</div></div>`;
+      return;
+    }
+    const rel=G.relations[f.id];
+    const status=rel>40?'FRIENDLY':rel>0?'NEUTRAL':rel>-30?'TENSE':'HOSTILE';
+    const atWar=G.relations['war_'+f.id];
+    html+=`<div class="card">
+      <h4 style="color:${f.color}">${f.name}</h4>
+      <div class="desc">Strength: ${f.strength} · Weakness: ${f.weakness}</div>
+      <div class="info-row"><span>Relationship</span><span class="v">${rel>0?'+':''}${rel} ${status}</span></div>
+      <div class="info-row"><span>Status</span><span class="v">${atWar?'AT WAR':'Peace'}</span></div>
+      <div style="margin-top:8px;">
+      ${atWar?
+        `<button class="mini-btn" onclick="offerPeace('${f.id}')">Offer Peace</button>`:
+        `<button class="mini-btn danger" onclick="declareWar('${f.id}')">Declare War</button>`}
+      <button class="mini-btn" onclick="proposeTrade('${f.id}')">Propose Trade</button>
+      <button class="mini-btn" onclick="formAlliance('${f.id}')">Form Alliance</button>
+      <button class="mini-btn" onclick="shareTech('${f.id}')">Share Technology</button>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  c.innerHTML=html;
+}
+function adjustRelation(fid,amt,reason){
+  G.relations[fid]=(G.relations[fid]||0)+amt;
+  G.relations[fid]=Math.max(-100,Math.min(100,G.relations[fid]));
+}
+function declareWar(fid){
+  G.relations['war_'+fid]=true;
+  G.relations[fid]-=30;
+  G.stats.warsFought++;
+  notify('War Declared','Your empire is now at war with '+factionName(fid)+'.','danger');
+  renderAll();
+}
+function offerPeace(fid){
+  if(rand()<0.5+((G.relations[fid]+50)/200)){
+    G.relations['war_'+fid]=false;
+    G.relations[fid]+=10;
+    notify('Peace Accepted',factionName(fid)+' has accepted your peace offer.','info');
+  } else {
+    notify('Peace Rejected',factionName(fid)+' rejected your peace offer.','warn');
+  }
+  renderAll();
+}
+function proposeTrade(fid){
+  openModal('Propose Trade to '+factionName(fid),`
+    <p style="margin-bottom:10px;">Offer 300 Steel in exchange for 200 Energy.</p>
+  `,[
+    {label:'Send Offer',action:()=>{
+      if(G.resources.steel<300){notify('Not Enough Steel','You need 300 Steel to make this offer.','warn');closeModal();return;}
+      const accept=rand()<0.55+(G.relations[fid]/200);
+      if(accept){
+        G.resources.steel-=300; G.resources.energy+=200;
+        adjustRelation(fid,4);
+        notify('Trade Accepted',factionName(fid)+' accepted the trade.','info');
+      } else {
+        notify('Trade Rejected',factionName(fid)+' rejected the trade.','warn');
+      }
+      closeModal(); renderAll();
+    }},
+    {label:'Cancel',action:closeModal}
+  ]);
+}
+function formAlliance(fid){
+  if(G.relations[fid]<30){notify('Alliance Refused',factionName(fid)+' does not trust you enough yet. Improve relations first.','warn');return;}
+  G.relations['ally_'+fid]=true;
+  adjustRelation(fid,10);
+  notify('Alliance Formed','You have formed an alliance with '+factionName(fid)+'.','info');
+  addAchievement('DIPLOMAT');
+  renderAll();
+}
+function shareTech(fid){
+  if(G.techsResearched.length===0){notify('No Technology','You have no completed research to share yet.','warn');return;}
+  adjustRelation(fid,8);
+  notify('Technology Shared',factionName(fid)+' appreciates the gesture. (+relations)','info');
+  renderAll();
+}
+
+/* ---------------- ECONOMY VIEW ---------------- */
+function renderEconomyView(c){
+  const income=computeIncome();
+  let html=`<div class="view-header">Economy</div><div class="card-grid">`;
+  Object.entries(income).forEach(([k,v])=>{
+    html+=`<div class="card"><h4 style="text-transform:capitalize;">${k}</h4><div class="desc">Net per turn</div>
+      <div style="font-size:22px;color:${v>=0?'var(--accent)':'var(--danger)'}">${v>=0?'+':''}${v.toFixed(0)}</div></div>`;
+  });
+  html+='</div>';
+  html+=`<div class="view-header" style="margin-top:24px;">Empire Status</div>
+  <div class="card"><div class="info-row"><span>Empire Level</span><span class="v">${EMPIRE_LEVELS[G.empireLevel]}</span></div>
+  <div class="info-row"><span>Territories</span><span class="v">${G.territories.filter(t=>t.owner===G.playerFaction).length}</span></div>
+  <div class="info-row"><span>Cities</span><span class="v">${G.cities.filter(ct=>ct.owner===G.playerFaction).length}</span></div>
+  <div class="info-row"><span>Population</span><span class="v">${Math.floor(G.population).toLocaleString()}</span></div>
+  <div class="info-row"><span>Technologies</span><span class="v">${G.techsResearched.length} / ${TECHS.length}</span></div>
+  </div>`;
+  c.innerHTML=html;
+}
+function computeIncome(){
+  const income={credits:0,food:0,steel:0,energy:0,science:0,rare:0};
+  const faction=FACTIONS.find(f=>f.id===G.playerFaction);
+  G.cities.filter(c=>c.owner===G.playerFaction).forEach(city=>{
+    const t=G.territories[city.territoryId];
+    const terr=TERRAIN.find(x=>x.id===t.terrain);
+    income.steel+=city.buildings.industry*8*(terr.bonus.steel||1)*techMult('steelMult');
+    income.energy+=city.buildings.energy*6*(terr.bonus.energy||1)*techMult('energyMult');
+    income.food+=(city.buildings.agriculture*10+ (terr.bonus.food||0)*5)*(faction.bonus.food||1)*techMult('foodMult');
+    income.science+=city.buildings.research*5*(faction.bonus.science||1)*techMult('scienceMult');
+    income.credits+=city.buildings.housing*4 + t.development*3;
+    income.rare+=(terr.bonus.rare||0)*2;
+  });
+  income.food-=G.population/120;
+  const upkeep=G.armies.filter(a=>a.owner===G.playerFaction).reduce((s,a)=>s+a.units.reduce((s2,u)=>s2+UNIT_TYPES[u.type].upkeep*u.count,0),0);
+  income.credits-=upkeep;
+  const allMult=1+techMult('allMult')-1;
+  Object.keys(income).forEach(k=>income[k]*=(1+techBonusSum('allMult')));
+  return income;
+}
+function techMult(key){
+  let mult=1;
+  G.techsResearched.forEach(tid=>{
+    const t=TECHS.find(x=>x.id===tid);
+    if(t.effect[key]) mult+=t.effect[key];
+  });
+  return mult;
+}
+function techBonusSum(key){
+  let sum=0;
+  G.techsResearched.forEach(tid=>{
+    const t=TECHS.find(x=>x.id===tid);
+    if(t.effect[key]) sum+=t.effect[key];
+  });
+  return sum;
+}
+
+/* ---------------- EXPLORATION VIEW ---------------- */
+function renderExplorationView(c){
+  const unexplored=G.territories.filter(t=>!t.explored);
+  let html=`<div class="view-header">Exploration</div>
+  <div class="card" style="max-width:420px;">
+    <h4>Send Expedition</h4>
+    <div class="desc">Send scouts to reveal unknown territory near your empire. Cost: 100 Credits.</div>
+    <div class="info-row"><span>Unexplored Tiles</span><span class="v">${unexplored.length}</span></div>
+    <button class="mini-btn" onclick="sendExpedition()" ${unexplored.length===0?'disabled':''}>Launch Expedition</button>
+  </div>`;
+  c.innerHTML=html;
+}
+function sendExpedition(){
+  if(G.resources.credits<100){notify('Not Enough Credits','Expeditions cost 100 Credits.','warn');return;}
+  G.resources.credits-=100;
+  const unexplored=G.territories.filter(t=>!t.explored);
+  if(unexplored.length===0)return;
+  const target=choice(unexplored);
+  revealAround(G,target,1);
+  const roll=rand();
+  let msg='The expedition reveals new territory.';
+  if(roll<0.15){ msg='Your scouts discover ancient technology fragments! +30 Rare Metals.'; G.resources.rare+=30; }
+  else if(roll<0.3){ msg='Survivors are found and welcomed into your population. +Population.'; G.population+=randInt(200,800); }
+  else if(roll<0.45){ msg='A dangerous automated defense system was found in the ruins.'; }
+  notify('Expedition Report',msg,'info');
+  renderAll();
+}
+
+/* ---------------- POLICIES VIEW ---------------- */
+const POLICIES=[
+  {id:'military_expansion',name:'Military Expansion Act',desc:'+15% military production, -10% food.',pros:'+15% Military',cons:'-10% Food'},
+  {id:'food_program',name:'Universal Food Program',desc:'+20% food, -10% credits.',pros:'+20% Food',cons:'-10% Credits'},
+  {id:'industrial_auto',name:'Industrial Automation',desc:'+20% steel, -10% population growth.',pros:'+20% Steel',cons:'-10% Pop Growth'},
+  {id:'emergency_powers',name:'Emergency Powers',desc:'+25% all production this turn cycle, -relations with all factions.',pros:'+25% Production',cons:'Relations Penalty'},
+  {id:'open_borders',name:'Open Borders',desc:'+relations with all factions, +5% population growth.',pros:'+Relations, +Pop Growth',cons:'Slightly slower defense'},
+];
+function renderPoliciesView(c){
+  let html=`<div class="view-header">Political Decisions</div><div class="card-grid">`;
+  POLICIES.forEach(p=>{
+    const active=G.activePolicies.includes(p.id);
+    html+=`<div class="card" style="${active?'border-color:var(--accent);':''}">
+      <h4>${p.name}${active?' ✓':''}</h4>
+      <div class="desc">${p.desc}</div>
+      <span class="tag" style="color:var(--accent)">${p.pros}</span><span class="tag" style="color:var(--danger)">${p.cons}</span>
+      <div style="margin-top:8px;"><button class="mini-btn" onclick="togglePolicy('${p.id}')">${active?'Repeal':'Enact'}</button></div>
+    </div>`;
+  });
+  html+='</div>';
+  c.innerHTML=html;
+}
+function togglePolicy(id){
+  if(G.activePolicies.includes(id)){
+    G.activePolicies=G.activePolicies.filter(x=>x!==id);
+    notify('Policy Repealed',POLICIES.find(p=>p.id===id).name+' has been repealed.','info');
+  } else {
+    G.activePolicies.push(id);
+    notify('Policy Enacted',POLICIES.find(p=>p.id===id).name+' is now in effect.','info');
+  }
+  renderAll();
+}
+
+/* ---------------- RECRUIT / MOVE / ATTACK MODALS ---------------- */
+function openRecruitModal(territoryId){
+  let body='<div style="display:flex;flex-direction:column;gap:8px;">';
+  Object.entries(UNIT_TYPES).forEach(([key,u])=>{
+    const locked=u.req && !G.techsResearched.includes(u.req);
+    if(locked)return;
+    body+=`<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1c2124;padding-bottom:6px;">
+      <div><b>${u.name}</b><br><span style="font-size:11px;color:var(--text-dim)">${Object.entries(u.cost).map(([k,v])=>v+' '+k).join(', ')}</span></div>
+      <button class="mini-btn" style="width:auto;margin:0;" onclick="recruitUnit(${territoryId},'${key}')">Recruit</button>
+    </div>`;
+  });
+  body+='</div>';
+  openModal('Recruit Units',body,[{label:'Close',action:closeModal}]);
+}
+function recruitUnit(territoryId,type){
+  const spec=UNIT_TYPES[type];
+  for(const [res,amt] of Object.entries(spec.cost)){
+    if(G.resources[res]<amt){notify('Insufficient Resources','Not enough '+res+' to recruit '+spec.name+'.','warn');return;}
+  }
+  Object.entries(spec.cost).forEach(([res,amt])=>G.resources[res]-=amt);
+  let army=G.armies.find(a=>a.owner===G.playerFaction && a.territoryId===territoryId);
+  if(!army){
+    army={id:G.armies.length?Math.max(...G.armies.map(a=>a.id))+1:0,owner:G.playerFaction,territoryId,name:'Task Force '+(G.armies.length+1),units:[]};
+    G.armies.push(army);
+  }
+  const existing=army.units.find(u=>u.type===type);
+  if(existing) existing.count++; else army.units.push({type,count:1});
+  notify('Unit Recruited',spec.name+' added to '+army.name+'.','info');
+  closeModal();
+  renderAll();
+}
+function openMoveModal(armyId){
+  const a=G.armies.find(x=>x.id===armyId);
+  const t=G.territories[a.territoryId];
+  const opts=neighbors(t);
+  let body='<div style="display:flex;flex-direction:column;gap:6px;">';
+  opts.forEach(n=>{
+    body+=`<button class="mini-btn" onclick="moveArmy(${armyId},${n.id})">${n.name} ${n.owner?'('+factionName(n.owner)+')':'(Unclaimed)'}</button>`;
+  });
+  body+='</div>';
+  openModal('Move Army',body,[{label:'Cancel',action:closeModal}]);
+}
+function moveArmy(armyId,targetId){
+  const a=G.armies.find(x=>x.id===armyId);
+  const target=G.territories[targetId];
+  if(target.owner && target.owner!==G.playerFaction){
+    closeModal();
+    openAttackModalDirect(armyId,targetId);
+    return;
+  }
+  a.territoryId=targetId;
+  closeModal();
+  notify('Army Moved',a.name+' has moved to '+target.name+'.','info');
+  renderAll();
+}
+function openAttackModal(armyId){
+  const a=G.armies.find(x=>x.id===armyId);
+  const t=G.territories[a.territoryId];
+  const enemies=neighbors(t).filter(n=>n.owner && n.owner!==G.playerFaction);
+  let body='<div style="display:flex;flex-direction:column;gap:6px;">';
+  enemies.forEach(n=>{
+    body+=`<button class="mini-btn danger" onclick="openAttackModalDirect(${armyId},${n.id})">${n.name} (${factionName(n.owner)})</button>`;
+  });
+  body+='</div>';
+  openModal('Choose Target',body,[{label:'Cancel',action:closeModal}]);
+}
+function openAttackModalDirect(armyId,targetId){
+  const a=G.armies.find(x=>x.id===armyId);
+  const target=G.territories[targetId];
+  const myAtk=a.units.reduce((s,u)=>s+UNIT_TYPES[u.type].attack*u.count,0)*(1+techBonusSum('attackMult'));
+  const terr=TERRAIN.find(x=>x.id===target.terrain);
+  const terrainDefBonus=terr.bonus.defense||0;
+  const enemyDef=target.defense+terrainDefBonus+target.development*8;
+  const myFaction=FACTIONS.find(f=>f.id===G.playerFaction);
+  const adjMyAtk=myAtk*(myFaction.bonus.military||1);
+  const total=adjMyAtk+enemyDef;
+  const winChance=Math.max(5,Math.min(95,Math.round((adjMyAtk/total)*100)));
+  pendingAttack={armyId,targetId};
+  const body=`
+    <div class="forecast-row"><span>Your Forces</span><span>${Math.round(adjMyAtk)} strength</span></div>
+    <div class="forecast-row"><span>Enemy Defense</span><span>${Math.round(enemyDef)} strength</span></div>
+    <div class="forecast-row"><span>Terrain</span><span>${terr.label}</span></div>
+    <div class="forecast-pct">${winChance}% Victory</div>
+  `;
+  openModal('Battle Forecast — '+target.name,body,[
+    {label:'Attack',action:()=>{executeAttack(winChance);closeModal();}},
+    {label:'Cancel',action:closeModal}
+  ]);
+}
+function executeAttack(winChance){
+  const {armyId,targetId}=pendingAttack;
+  const a=G.armies.find(x=>x.id===armyId);
+  const target=G.territories[targetId];
+  const won=rand()*100<winChance;
+  G.stats.warsFought+= target.owner? 0:0;
+  if(won){
+    const prevOwner=target.owner;
+    target.owner=G.playerFaction;
+    target.defense=Math.max(5,target.defense-15);
+    a.territoryId=targetId;
+    let city=G.cities.find(c=>c.territoryId===targetId);
+    if(city) city.owner=G.playerFaction; else G.cities.push(makeCity(target));
+    if(prevOwner){
+      adjustRelation(prevOwner,-15);
+      if(!G.relations['war_'+prevOwner]) G.relations['war_'+prevOwner]=true;
+      checkFactionElimination(prevOwner);
+    }
+    // casualties
+    a.units.forEach(u=>{u.count=Math.max(0,u.count-Math.ceil(u.count*0.1));});
+    a.units=a.units.filter(u=>u.count>0);
+    notify('Victory!','Your forces captured '+target.name+'.','info');
+    addAchievement('CONQUEROR');
+  } else {
+    a.units.forEach(u=>{u.count=Math.max(0,u.count-Math.ceil(u.count*0.35));});
+    a.units=a.units.filter(u=>u.count>0);
+    if(a.units.length===0) G.armies=G.armies.filter(x=>x.id!==armyId);
+    notify('Defeat','Your assault on '+target.name+' failed with heavy losses.','danger');
+  }
+  renderAll();
+  checkPlayerDefeat();
+}
+function disbandArmy(armyId){
+  G.armies=G.armies.filter(a=>a.id!==armyId);
+  selectedArmy=null;
+  notify('Army Disbanded','The task force has been disbanded.','info');
+  renderAll();
+}
+
+/* ---------------- FACTION ELIMINATION CHECK ---------------- */
+function checkFactionElimination(fid){
+  const stillHasTerritory=G.territories.some(t=>t.owner===fid);
+  if(!stillHasTerritory){
+    G.factions[fid].alive=false;
+    notify('Faction Eliminated',factionName(fid)+' has been eliminated from the world.','warn');
+  }
+}
+
+/* ---------------- MODAL SYSTEM ---------------- */
+function openModal(title,bodyHtml,actions){
+  document.getElementById('modal-inner').innerHTML=`
+    <h3>${title}</h3><div class="body">${bodyHtml}</div>
+    <div class="modal-actions">${actions.map((a,i)=>`<button id="modal-act-${i}">${a.label}</button>`).join('')}</div>
+  `;
+  actions.forEach((a,i)=>document.getElementById('modal-act-'+i).onclick=a.action);
+  document.getElementById('modal-overlay').classList.add('active');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('active');}
+
+/* ---------------- NOTIFICATIONS ---------------- */
+function notify(title,msg,type){
+  const stack=document.getElementById('notif-stack');
+  const div=document.createElement('div');
+  div.className='notif'+(type==='warn'?' warn':type==='danger'?' danger':'');
+  div.innerHTML=`<b>${title}</b><br>${msg}`;
+  stack.appendChild(div);
+  setTimeout(()=>{div.style.opacity='0';div.style.transition='opacity .4s';setTimeout(()=>div.remove(),400);},5500);
+}
+
+/* ---------------- ACHIEVEMENTS ---------------- */
+function addAchievement(id){
+  if(!G.achievements.includes(id)){
+    G.achievements.push(id);
+    notify('Achievement Unlocked',id.replace(/_/g,' '),'info');
+  }
+}
+
+/* ---------------- RANDOM EVENTS ---------------- */
+const EVENTS=[
+  {
+    title:'Power Grid Failure',
+    desc:'Several cities lose energy production this turn.',
+    choices:[
+      {label:'Spend 500 Credits',action:()=>{if(G.resources.credits>=500){G.resources.credits-=500;notify('Crisis Averted','Emergency funding restored the grid.','info');}else{notify('Not Enough Credits','The grid failure could not be fixed.','danger');G.resources.energy-=80;}}},
+      {label:'Shut Down Factories',action:()=>{G.resources.steel-=60;notify('Factories Halted','Steel production suffered this turn.','warn');}},
+      {label:'Ignore The Problem',action:()=>{G.resources.energy-=100;notify('Energy Crisis','Energy reserves dropped sharply.','danger');}},
+    ]
+  },
+  {
+    title:'Refugee Convoy',
+    desc:'Thousands of survivors arrive at your border seeking shelter.',
+    choices:[
+      {label:'Accept Them',action:()=>{G.population+=randInt(500,1200);G.resources.food-=100;notify('Refugees Accepted','Your population grows, but food reserves drop.','info');}},
+      {label:'Reject Them',action:()=>{adjustRelation(choice(Object.keys(G.relations).filter(k=>!k.startsWith('war_')&&!k.startsWith('ally_'))||['crimson']),-5);notify('Refugees Turned Away','Your reputation suffers slightly.','warn');}},
+      {label:'Recruit Them',action:()=>{G.population+=randInt(200,500);G.resources.credits+=150;notify('Refugees Recruited','Some join your workforce, boosting the economy.','info');}},
+    ]
+  },
+  {
+    title:'Ancient Signal Detected',
+    desc:'Sensors pick up a faint signal from deep within the ruins — a fragment of the Old World.',
+    choices:[
+      {label:'Investigate',action:()=>{
+        if(rand()<0.5){G.resources.rare+=40;notify('Signal Investigated','Your team recovers valuable technology fragments.','info');}
+        else{G.population-=randInt(50,150);notify('Signal Investigated','The site was more dangerous than expected. Casualties reported.','danger');}
+      }},
+      {label:'Ignore It',action:()=>{notify('Signal Ignored','The mystery remains unsolved... for now.','info');}},
+    ]
+  },
+  {
+    title:'Bumper Harvest',
+    desc:'Favorable conditions have led to an unusually large harvest.',
+    choices:[
+      {label:'Celebrate',action:()=>{G.resources.food+=150;G.population+=100;notify('Bumper Harvest','Food stocks and morale rise.','info');}},
+      {label:'Store Surplus',action:()=>{G.resources.food+=250;notify('Surplus Stored','Food reserves increase significantly.','info');}},
+    ]
+  },
+];
+function maybeTriggerEvent(){
+  if(rand()<0.35){
+    const ev=choice(EVENTS);
+    openModal(ev.title,ev.desc,ev.choices.map(c=>({label:c.label,action:()=>{c.action();closeModal();renderAll();}})));
+  }
+}
+
+/* ---------------- AI TURN ---------------- */
+function runAITurn(fid){
+  const state=G.factions[fid];
+  if(!state.alive)return;
+  const myTerritories=G.territories.filter(t=>t.owner===fid);
+  if(myTerritories.length===0)return;
+  const personality=state.personality;
+  // expand: try to claim adjacent unowned territory
+  if(rand()<0.5){
+    const candidates=[];
+    myTerritories.forEach(t=>neighbors(t).forEach(n=>{if(!n.owner && !n.independent) candidates.push(n);}));
+    if(candidates.length){
+      const target=choice(candidates);
+      target.owner=fid; target.explored=true;
+      let city=G.cities.find(c=>c.territoryId===target.id);
+      if(!city) G.cities.push(makeCity(target)); else city.owner=fid;
+    }
+  }
+  // develop a random owned city
+  const cities=G.cities.filter(c=>c.owner===fid);
+  if(cities.length){
+    const c=choice(cities);
+    const bkey=choice(Object.keys(BUILDINGS));
+    c.buildings[bkey]+= rand()<0.7?1:0;
+  }
+  // military behavior
+  if(personality==='aggressive' && rand()<0.4){
+    const enemyBorders=[];
+    myTerritories.forEach(t=>neighbors(t).forEach(n=>{if(n.owner && n.owner!==fid) enemyBorders.push({from:t,to:n});}));
+    if(enemyBorders.length){
+      const pick=choice(enemyBorders);
+      const atkPower=randInt(20,80);
+      const defPower=pick.to.defense+pick.to.development*8;
+      if(atkPower>defPower*0.8 && rand()<0.5){
+        const prevOwner=pick.to.owner;
+        pick.to.owner=fid;
+        if(prevOwner===G.playerFaction){
+          notify('Territory Lost',pick.to.name+' has been captured by '+factionName(fid)+'!','danger');
+        }
+        if(prevOwner) checkFactionElimination(prevOwner);
+        G.relations[fid]=(G.relations[fid]||0)-4;
+      }
+    }
+  }
+  if(personality==='diplomatic' && G.relations[fid]!==undefined && rand()<0.3){
+    G.relations[fid]=Math.min(100,G.relations[fid]+3);
+  }
+  if(personality==='technological' && rand()<0.2){
+    // flavor only
+  }
+}
+
+/* ---------------- END TURN / ECONOMY TICK ---------------- */
+function endTurn(){
+  const income=computeIncome();
+  Object.keys(income).forEach(k=>{
+    G.resources[k]=Math.max(0,G.resources[k]+income[k]);
+  });
+  G.population=Math.max(0,G.population+income.food>0? G.population*(1+0.01*techMult('growthMult')/10):G.population*0.98);
+  // research
+  if(G.researching){
+    G.researchProgress+=income.science>0?Math.max(income.science,5):5;
+    const t=TECHS.find(x=>x.id===G.researching);
+    if(G.researchProgress>=t.cost){
+      G.techsResearched.push(t.id);
+      G.stats.techCount++;
+      notify('Technology Researched',t.name+' has been completed!','info');
+      addAchievement('TECHNOCRAT');
+      G.researching=null; G.researchProgress=0;
+    }
+  }
+  // AI factions act
+  FACTIONS.filter(f=>f.id!==G.playerFaction).forEach(f=>runAITurn(f.id));
+  // random event
+  maybeTriggerEvent();
+  // empire level check
+  updateEmpireLevel();
+  // achievements check
+  checkAchievements();
+  G.year++;
+  saveGame();
+  renderAll();
+  checkPlayerDefeat();
+  checkPlayerVictory();
+}
+function updateEmpireLevel(){
+  const myTerr=G.territories.filter(t=>t.owner===G.playerFaction).length;
+  let lvl=0;
+  if(myTerr>=3) lvl=1;
+  if(myTerr>=8) lvl=2;
+  if(myTerr>=16) lvl=3;
+  if(myTerr>=28) lvl=4;
+  if(myTerr>=45) lvl=5;
+  if(lvl>G.empireLevel){
+    G.empireLevel=lvl;
+    notify('Empire Grows','Your empire has reached: '+EMPIRE_LEVELS[lvl],'info');
+  }
+}
+function checkAchievements(){
+  if(G.cities.filter(c=>c.owner===G.playerFaction).length>=1) addAchievement('FIRST_SETTLEMENT');
+  if(G.territories.filter(t=>t.owner===G.playerFaction).length>=10) addAchievement('CONQUEROR');
+  if(Object.values(G.factions).filter(f=>G.relations['ally_'+f.id]).length>=3) addAchievement('DIPLOMAT');
+  if(G.year>=100) addAchievement('LAST_EMPIRE');
+}
+
+/* ---------------- WIN / LOSE ---------------- */
+function checkPlayerDefeat(){
+  const capital=G.territories[G.capitalId];
+  if(capital.owner!==G.playerFaction || G.population<=0){
+    showEndScreen(false);
+  }
+}
+function checkPlayerVictory(){
+  const totalTiles=G.territories.length;
+  const myTiles=G.territories.filter(t=>t.owner===G.playerFaction).length;
+  if(myTiles/totalTiles>=0.7){ showEndScreen(true,'MILITARY VICTORY'); return; }
+  if(G.techsResearched.length>=TECHS.length){ showEndScreen(true,'TECHNOLOGICAL VICTORY'); return; }
+  if(G.resources.credits>=20000){ showEndScreen(true,'ECONOMIC VICTORY'); return; }
+  const allies=Object.keys(G.factions).filter(f=>f!==G.playerFaction && G.relations['ally_'+f]).length;
+  const aliveOthers=Object.values(G.factions).filter(f=>f.id!==G.playerFaction&&f.alive).length;
+  if(allies>0 && allies>=aliveOthers){ showEndScreen(true,'DIPLOMATIC VICTORY'); return; }
+  if(G.year>=150){ showEndScreen(true,'SURVIVAL VICTORY'); return; }
+}
+function showEndScreen(win,label){
+  const screen=document.getElementById('endscreen');
+  screen.classList.toggle('win',win);
+  document.getElementById('end-title').textContent=win?(label||'VICTORY'):'EMPIRE FALLEN';
+  document.getElementById('end-stats').innerHTML=`
+    <div class="info-row"><span>Territories Controlled</span><span class="v">${G.territories.filter(t=>t.owner===G.playerFaction).length}</span></div>
+    <div class="info-row"><span>Population</span><span class="v">${Math.floor(G.population).toLocaleString()}</span></div>
+    <div class="info-row"><span>Wars Fought</span><span class="v">${G.stats.warsFought}</span></div>
+    <div class="info-row"><span>Technologies Discovered</span><span class="v">${G.techsResearched.length}</span></div>
+    <div class="info-row"><span>Years Survived</span><span class="v">${G.year}</span></div>
+  `;
+  localStorage.removeItem('empire_afterfall_save');
+  showScreen('endscreen');
+}
+
+/* ---------------- SAVE / LOAD ---------------- */
+function saveGame(){
+  try{ localStorage.setItem('empire_afterfall_save',JSON.stringify(G)); }catch(e){console.warn('save failed',e);}
+}
+
+/* ---------------- MASTER RENDER ---------------- */
+function renderAll(){
+  if(!G)return;
+  document.getElementById('r-credits').textContent=Math.floor(G.resources.credits).toLocaleString();
+  document.getElementById('r-food').textContent=Math.floor(G.resources.food).toLocaleString();
+  document.getElementById('r-steel').textContent=Math.floor(G.resources.steel).toLocaleString();
+  document.getElementById('r-energy').textContent=Math.floor(G.resources.energy).toLocaleString();
+  document.getElementById('r-science').textContent=Math.floor(G.resources.science).toLocaleString();
+  document.getElementById('r-rare').textContent=Math.floor(G.resources.rare).toLocaleString();
+  document.getElementById('r-pop').textContent=Math.floor(G.population).toLocaleString();
+  document.getElementById('turn-display').textContent='YEAR '+G.year;
+  renderMap();
+  renderRightPanel();
+  if(currentView!=='map') renderView(currentView);
+}
+</script>
+</body>
+</html>
